@@ -9,6 +9,7 @@
 #include "engine/GameInstance.h"
 #include "engine/rendering/Camera.h"
 #include "engine/rendering/GLUtils.h"
+#include "engine/rendering/renderpasses/FXAARenderpass.h"
 #include "engine/rendering/renderpasses/OpaqueRenderpass.h"
 #include "engine/rendering/renderpasses/ResolverRenderpass.h"
 #include "engine/rendering/renderpasses/SSAORenderpass.h"
@@ -52,9 +53,9 @@ void Renderer::init() {
     // GLEnableDebugging();
 
     GLCALL(glEnable(GL_DEPTH_TEST));
-    GLCALL(glEnable(GL_CULL_FACE));    // Enable face culling
-    GLCALL(glCullFace(GL_BACK));       // Specify that back faces should be culled (not rendered)
-    GLCALL(glFrontFace(GL_CW));        // Specify frontfaces as faces with clockwise winding
+    GLCALL(glEnable(GL_CULL_FACE));  // Enable face culling
+    GLCALL(glCullFace(GL_BACK));     // Specify that back faces should be culled (not rendered)
+    GLCALL(glFrontFace(GL_CW));      // Specify frontfaces as faces with clockwise winding
     GLCALL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
 
     std::unique_ptr<TransformFeedbackpass> transformFeebackpass = std::make_unique<TransformFeedbackpass>();
@@ -63,6 +64,7 @@ void Renderer::init() {
     std::unique_ptr<OpaqueRenderpass> opaqueRenderpass = std::make_unique<OpaqueRenderpass>();
     std::unique_ptr<TransparencyRenderpass> transparencyRenderpass = std::make_unique<TransparencyRenderpass>();
     std::unique_ptr<ResolverRenderpass> resolverRenderpass = std::make_unique<ResolverRenderpass>();
+    std::unique_ptr<FXAARenderpass> fxaaRenderpass = std::make_unique<FXAARenderpass>();
 
     LightProcessor& lightProcessor = shadowpass->getLightProcessor();
     m_renderResources.priodLightsBuffer.reserve(lightProcessor.totalSupportedLights());
@@ -77,6 +79,7 @@ void Renderer::init() {
     renderpasses.push_back(std::move(opaqueRenderpass));
     renderpasses.push_back(std::move(transparencyRenderpass));
     renderpasses.push_back(std::move(resolverRenderpass));
+    renderpasses.push_back(std::move(fxaaRenderpass));
 
     m_renderResources.lightsToRender = &m_lightsToRender;
     m_renderResources.objectsToRender = &m_objectsToRender;

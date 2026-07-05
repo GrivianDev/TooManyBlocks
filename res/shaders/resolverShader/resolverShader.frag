@@ -2,7 +2,7 @@
 
 in vec2 screenUV;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec3 outColor;
 
 uniform sampler2D u_opaquePassResult;
 uniform sampler2D u_transparencyAccumTexture;
@@ -16,5 +16,5 @@ void main() {
     // Safe normalization
     vec3 avgColor = accum.rgb / max(accum.a, 0.0001);
     vec3 finalColor = mix(opaqueColor, avgColor, (1.0 - reveal));
-    outColor = vec4(finalColor, 1.0);
+    outColor = vec3(finalColor);
 }

@@ -7,15 +7,19 @@
 #include "engine/rendering/Frustum.h"
 #include "engine/rendering/GLUtils.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/resource/loaders/ShaderLoader.h"
 #include "engine/rendering/lowlevelapi/FrameBuffer.h"
+#include "engine/resource/loaders/ShaderLoader.h"
 
 void ResolverRenderpass::prepare(
     RenderContext& context,
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    FrameBuffer::bindDefault();
+    if (context.screenResChanged) {
+        createBuffers(context);
+    }
+
+    m_resolverBuffer.bind();
     GLCALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     glm::uvec2 screenRes = context.currScreenRes;
     GLCALL(glViewport(0, 0, screenRes.x, screenRes.y));
@@ -42,14 +46,16 @@ void ResolverRenderpass::cleanup(
     RenderContext& context,
     RenderResources& resources,
     const ApplicationContext& appContext
-) {}
+) {
+    context.resolverInfo.output = m_resolverBuffer.getAttachedTextures().at(0).get();
+}
 
 ResolverRenderpass::ResolverRenderpass() {
     ApplicationContext* context = Application::getContext();
     CPUShader cpuShader = loadShaderFromFile(Res::Shader::RESOLVER, ShaderLoadOption::VertexAndFragment);
 
     m_resolverShader = Shader::create(cpuShader.vertexShader, cpuShader.fragmentShader);
-
+    m_resolverBuffer = FrameBuffer::create();
 }
 
 const char* ResolverRenderpass::name() { return "Resolver Renderpass"; }
@@ -58,4 +64,13 @@ void ResolverRenderpass::putDebugInfo(DebugReport& report) {
     report.beginGroup(name());
     report.addTimeMs("Processing Time", m_lastRunTimeMs);
     report.endGroup();
+}
+
+void ResolverRenderpass::createBuffers(RenderContext& context) {
+    m_resolverBuffer.clearAttachedTextures();
+    m_resolverBuffer.attachTexture(
+        std::make_shared<Texture>(
+            Texture::create(TextureType::Color, context.currScreenRes.x, context.currScreenRes.y, 3)
+        )
+    );
 }

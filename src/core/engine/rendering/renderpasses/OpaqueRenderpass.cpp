@@ -69,7 +69,7 @@ OpaqueRenderpass::OpaqueRenderpass() : m_debugPolygonModeEnabled(false), m_objec
     m_opaqueBuffer = FrameBuffer::create();
 }
 
-const char* OpaqueRenderpass::name() { return "Main Renderpass"; }
+const char* OpaqueRenderpass::name() { return "Opaque Renderpass"; }
 
 void OpaqueRenderpass::putDebugInfo(DebugReport& report) {
     report.beginGroup(name());

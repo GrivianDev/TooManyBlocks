@@ -14,6 +14,7 @@ namespace Res {
         constexpr const char* SKELETAL_MESH = "res/shaders/skeletalMeshShader";
         constexpr const char* TRANSPARENT = "res/shaders/transparencyShader";
         constexpr const char* RESOLVER = "res/shaders/resolverShader";
+        constexpr const char* FXAA = "res/shaders/fxaaShader";
     }  // namespace Shader
 
     namespace Texture {

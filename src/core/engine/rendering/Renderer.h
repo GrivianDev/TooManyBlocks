@@ -52,6 +52,10 @@ struct OpaqueInfo {
     std::shared_ptr<Texture> usedDepthTexture;
 };
 
+struct ResolverInfo {
+    const Texture* output;
+};
+
 struct TransparencyInfo {
     const Texture* accumOutput;
     const Texture* revealOutput;
@@ -74,6 +78,7 @@ struct RenderContext {
     SSAOInfo ssaoInfo;
     OpaqueInfo opaqueInfo;
     TransparencyInfo transparencyInfo;
+    ResolverInfo resolverInfo;
 };
 
 struct RenderResources {
