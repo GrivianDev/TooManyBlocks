@@ -674,7 +674,10 @@ void AudioEngine::sendCommandsToAudioThread() {
         if (!isCmdAllowed(cmd, m_data->engine)) continue;  // dependency based ignore
 
         beforeCmdSend(cmd, m_data->engine);
-        if (rbWriteElements<AudioCmd>(&m_data->shared.mainToAudioQueue, &cmd, 1) != 1) break;  // ringbuffer full
+        if (rbWriteElements<AudioCmd>(&m_data->shared.mainToAudioQueue, &cmd, 1) != 1) {
+            lgr::lout.warn("Failed to send cmd to audio thread because ring buffer is full");
+            break;
+        }
         afterCmdSend(cmd, m_data->engine);
 
         sentIndices.push_back(i);

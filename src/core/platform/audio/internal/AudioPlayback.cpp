@@ -599,7 +599,9 @@ static void processCmdsFromMain(AudioThreadContext* context) {
         }
 
         if (cmd.needsAck) {  // Send back ones with flag set
-            rbWriteElements<AudioCmd>(&context->shared->audioToMainQueue, &cmd, 1);
+            if (rbWriteElements<AudioCmd>(&context->shared->audioToMainQueue, &cmd, 1) != 1) {
+                lgr::lout.error("Failed to send audio cmd ack back to main thread");
+            }
         }
     }
 
@@ -641,7 +643,9 @@ void audioCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
             stopCmd.type = AudioCmdType::Stop;
             stopCmd.target = AudioCmdTarget::AudioInstanceTarget;
             stopCmd.instanceId = i;
-            rbWriteElements<AudioCmd>(&context->shared->audioToMainQueue, &stopCmd, 1);
+            if (rbWriteElements<AudioCmd>(&context->shared->audioToMainQueue, &stopCmd, 1) != 1) {
+                lgr::lout.error("Failed to send audio stop cmd to main thread");
+            }
         }
     }
 
