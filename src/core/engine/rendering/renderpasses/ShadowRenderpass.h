@@ -10,7 +10,8 @@ class ShadowRenderpass : public Renderpass {
 private:
     LightProcessor m_lightProcessor;
     size_t m_objectsProcessed;
-    std::array<unsigned int, LightPriority::Count> m_lastLightCountPerPrio;
+    size_t m_processedLightCount;
+    size_t m_shadowMapCount;
 
 protected:
     virtual void prepare(
@@ -30,6 +31,7 @@ protected:
     ) override;
 
 public:
+    ShadowRenderpass();
     virtual ~ShadowRenderpass() = default;
 
     virtual const char* name() override;

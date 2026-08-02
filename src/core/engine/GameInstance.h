@@ -36,7 +36,7 @@ public:
     std::shared_ptr<StaticMesh> m_mesh2;
     std::shared_ptr<StaticMesh> m_mesh3;
     std::shared_ptr<Wireframe> m_focusedBlockOutline;
-    std::vector<std::shared_ptr<Spotlight>> m_lights;
+    std::vector<std::shared_ptr<Light>> m_lights;
 
     std::shared_ptr<ParticleSystem> m_particles;
 

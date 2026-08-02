@@ -2,60 +2,63 @@
 #define TOOMANYBLOCKS_LIGHTPROCESSOR_H
 
 #include <array>
-#include <glm/glm.hpp>
 #include <vector>
 
 #include "engine/env/lights/Light.h"
 #include "engine/rendering/lowlevelapi/FrameBuffer.h"
 #include "engine/rendering/lowlevelapi/Texture.h"
 #include "engine/rendering/lowlevelapi/UniformBuffer.h"
+#include "engine/rendering/renderpasses/allocator/ShadowMapAllocator.h"
 
 struct RenderContext;
 
 class LightProcessor {
 private:
     size_t m_totalSupportedLights;
-    std::array<FrameBuffer, LightPriority::Count> m_shadowMapAtlases;
-    std::array<unsigned int, LightPriority::Count> m_shadowMapSizes;
-    std::array<unsigned int, LightPriority::Count> m_maxShadowMapsPerPriority;
+    ShadowMapAllocator m_shadowMapAllocator;
+    std::array<FrameBuffer, SHADOW_ATLAS_COUNT> m_shadowAtlases;
+    std::array<Texture*, SHADOW_ATLAS_COUNT> m_shadowMapsTextures;
+
+    unsigned int m_shadowAtlasSize;
 
     std::vector<GPULight> m_lightBuffer;
     UniformBuffer m_lightUniformBuffer;
 
-    std::vector<glm::mat4> m_lightViewProjectionBuffer;
-    UniformBuffer m_lightViewProjectionUniformBuffer;
+    std::vector<GPUShadowMap> m_shadowMapBuffer;
+    UniformBuffer m_shadowMapUniformBuffer;
+
+    unsigned int importanceToInitialResolution(float score) const;
+
+    unsigned int directionalShadowResolution(const Light* light) const;
+
+    float shadowQualityBias(unsigned int shadowCasterCount) const;
+
+    float scoreLight(const Light* light, const RenderContext& content) const;
 
 public:
-    static std::array<unsigned int, LightPriority::Count> prioritizeLights(
-        const std::vector<Light*>& lights,
-        std::vector<Light*>& outputBuffer,
-        const std::array<unsigned int, LightPriority::Count>& maxShadowMapsPerPriority,
-        const RenderContext& context
-    );
-
-    LightProcessor();
+    LightProcessor(size_t totalSupportedLights);
 
     void clearShadowMaps();
 
-    void prepareShadowPass(const Light* light);
+    void prepareShadowPass(const Light* light, const GPUShadowMap& shadowMap);
 
-    void updateBuffers(const std::vector<Light*>& activeLights);
+    void prepareShadowData(
+        const std::vector<Light*>& lights,
+        std::vector<Light*>& outputBuffer,
+        const RenderContext& context
+    );
 
-    std::array<Texture*, LightPriority::Count> getShadowMapAtlases() const;
+    inline const std::array<Texture*, SHADOW_ATLAS_COUNT>& getShadowMapAtlases() const { return m_shadowMapsTextures; };
 
-    inline size_t totalSupportedLights() const { return m_totalSupportedLights; }
+    inline unsigned int getShadowAtlasSize() const { return m_shadowAtlasSize; }
 
-    inline const std::array<unsigned int, LightPriority::Count>& getShadowMapSizes() const { return m_shadowMapSizes; }
+    inline const UniformBuffer* getLightUniformBuffer() const { return &m_lightUniformBuffer; }
 
-    inline const std::array<unsigned int, LightPriority::Count>& getShadowMapCounts() const {
-        return m_maxShadowMapsPerPriority;
-    }
+    inline const std::vector<GPUShadowMap>& getAllocatedShadowMaps() const { return m_shadowMapBuffer; }
 
-    inline const UniformBuffer* getShaderLightUniformBuffer() const { return &m_lightUniformBuffer; }
+    inline const UniformBuffer* getShadowMapUniformBuffer() const { return &m_shadowMapUniformBuffer; }
 
-    inline const UniformBuffer* getLightViewProjectionUniformBuffer() const {
-        return &m_lightViewProjectionUniformBuffer;
-    }
+    inline size_t getTotalSupportedLights() const { return m_totalSupportedLights; }
 };
 
 #endif

@@ -93,7 +93,7 @@ void PlayerController::update(float deltaTime) {
                 float speed = 4.0f;
                 MovementMode currMode = pl->getMovementComponent()->getMovementMode();
                 if (keyStates[GLFW_KEY_LEFT_SHIFT] && currMode != MovementMode::Fly) {
-                    speed *= 2.0f;
+                    speed *= 2.5f;
                 }
 
                 // Adjust velocity based on key states

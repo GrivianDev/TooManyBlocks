@@ -13,6 +13,8 @@
 #include "engine/builders/StaticMeshBuilder.h"
 #include "engine/builders/TextureBuilder.h"
 #include "engine/controllers/PlayerController.h"
+#include "engine/env/lights/DirectionalLight.h"
+#include "engine/env/lights/PointLight.h"
 #include "engine/env/lights/Spotlight.h"
 #include "engine/geometry/BoundingVolume.h"
 #include "engine/rendering/Renderer.h"
@@ -26,8 +28,8 @@
 #include "engine/resource/cpu/CPUShader.h"
 #include "engine/resource/cpu/CPUTexture.h"
 #include "engine/resource/providers/CPUAssetProvider.h"
-#include "rendering/StaticMesh.h"
 #include "foundation/threading/Future.h"
+#include "rendering/StaticMesh.h"
 
 GameInstance::GameInstance() : m_playerController(nullptr), m_player(nullptr), m_world(nullptr) {}
 
@@ -49,23 +51,30 @@ void GameInstance::initializeWorld(World* newWorld) {
 
         CPUAssetProvider* provider = Application::getContext()->provider;
 
-        std::uniform_real_distribution<float> positionDist(-50.0f, 50.0f);
-        std::uniform_real_distribution<float> lookAtDist(-50.0f, 50.0f);
-        for (int i = 0; i < 25; ++i) {
-            auto light = std::make_shared<Spotlight>(glm::vec3(1.0f), 1.0f, 45.0f, 50.0f);
-            light->setInnerCutoffAngle(25.0f);
+        auto light1 = std::make_shared<PointLight>(glm::vec3(1.0f), 1.0f, 5.0f);
+        light1->setCastsShadows(true);
+        light1->setShadowPriority(1);
+        light1->getLocalTransform().setPosition({1.5, 7, 0.5});
+        light1->getLocalTransform().lookAt({0, 5, -4});
+        m_lights.push_back(light1);
 
-            // Randomize position
-            glm::vec3 randomPosition(positionDist(generator), 10.0f, positionDist(generator));
-            light->getLocalTransform().setPosition(randomPosition);
-
-            // Randomize lookAt target
-            glm::vec3 randomTarget(lookAtDist(generator), 5.0f, lookAtDist(generator));
-            light->getLocalTransform().lookAt(randomTarget);
-
-            // Add to the vector
-            m_lights.push_back(light);
+        for (int i = 0; i < 5; i++) {
+            auto light2 = std::make_shared<Spotlight>(glm::vec3(1.0f), 1.0f, 45.0f, 10.0f);
+            light2->setInnerCutoffAngle(25);
+            light2->setCastsShadows(true);
+            light2->setShadowPriority(1);
+            light2->getLocalTransform().setPosition({15 + (i*10), 8, 0});
+            light2->getLocalTransform().lookAt({14 + (i*10), 4, -4});
+            m_lights.push_back(light2);
         }
+
+        auto light3 = std::make_shared<DirectionalLight>(glm::vec3(1.0f, 0.86f, 0.25f), 0.5f);
+        light3->setCastsShadows(true);
+        light3->setShadowDistance(110);
+        light3->setCascadeCount(3);
+        light3->getLocalTransform().setPosition({15, 8, 0});
+        light3->getLocalTransform().lookAt({14, 4, -4});
+        m_lights.push_back(light3);
 
         Future<Shader> shader = build(provider->getShader(Res::Shader::SIMPLE));
         Future<Shader> transparentShader = build(provider->getShader(Res::Shader::TRANSPARENT));
@@ -180,6 +189,7 @@ void GameInstance::pushWorldRenderData() {
             renderer->submitRenderable(val.second.getMesh());
         }
     }
+
     renderer->submitRenderable(m_mesh1.get());
     renderer->submitRenderable(m_mesh2.get());
     renderer->submitRenderable(m_mesh3.get());
@@ -197,9 +207,6 @@ void GameInstance::update(float deltaTime) {
     gameState.elapsedGameTime += deltaTime;
 
     m_player->update(deltaTime);
-    for (const auto& light : m_lights) {
-        light->getLocalTransform().rotate(glm::vec3(0.0f, 10.0f * deltaTime, 0.0f));
-    }
 
     m_particles->update(deltaTime);
 

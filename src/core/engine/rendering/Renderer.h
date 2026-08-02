@@ -19,12 +19,9 @@ struct ApplicationContext;
 
 struct LightingInfo {
     unsigned int activeLightsCount;
+    std::array<Texture*, SHADOW_ATLAS_COUNT> shadowMapAtlases;
     const UniformBuffer* lightBuff;
-    const UniformBuffer* lightViewProjectionBuff;
-    LightPriority currentLightPrio;
-    unsigned int lightShadowAtlasIndex;
-    std::array<unsigned int, LightPriority::Count> shadowMapSizes;
-    std::array<Texture*, LightPriority::Count> shadowMapAtlases;
+    const UniformBuffer* shadowMapBuff;
 };
 
 struct TransformInfo {

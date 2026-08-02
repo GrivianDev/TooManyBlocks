@@ -1,10 +1,12 @@
 #version 430 core
 
-#define MAX_LIGHTS 84
+#define MAX_LIGHTS 1024
+#define MAX_SHADOWMAP_COUNT 3076
+#define SHADOWATLAS_COUNT 4
 
 #define DIRECTIONALLIGHT 0u
 #define SPOTLIGHT 1u
-#define POINTLIGHT 1u
+#define POINTLIGHT 2u
 
 in vec3 position;
 flat in uint texIndex;
@@ -15,8 +17,8 @@ layout(location = 0) out vec4 outColor;
 
 struct Light {
     uint lightType;
-    uint priority;
-    uint shadowMapIndex;
+    uint shadowMapsOffset;
+    uint shadowMapCount;
     float intensity;
     vec3 lightPosition;
     float range; // Used by point- / spotlight
@@ -26,13 +28,27 @@ struct Light {
     float innerCutoffAngle; // Used by spotlicht
 };
 
+struct ShadowMap {
+    mat4 viewProjection;
+
+    uint lightIndex;
+    uint atlasIndex;
+    uint resolution;
+    float cascadeSplit;
+
+    vec2 atlasOffset;  // [0, 1] Normalized to atlas size
+    vec2 atlasScale;   // [0, 1] Normalized to atlas size
+};
+
 layout(std140) uniform LightsBlock {
     Light u_lights[MAX_LIGHTS];
 };
 
-layout(std140) uniform LightViewProjBlock {
-    mat4 u_lightViewProjections[MAX_LIGHTS];
+layout(std140) uniform ShadowMapsBlock {
+    ShadowMap u_shadowMaps[MAX_SHADOWMAP_COUNT];
 };
+
+uniform mat4 u_view;
 
 uniform sampler2D u_textureAtlas;
 uniform uint u_textureAtlasSize;
@@ -44,9 +60,7 @@ uniform int u_lightCount;
 uniform sampler2D u_ssaoTexture;
 uniform uvec2 u_screenResolution;
 
-uniform sampler2D u_shadowMapAtlas[3];
-uniform uint u_shadowMapAtlasSizes[3];
-uniform uint u_shadowMapSizes[3];
+uniform sampler2DShadow u_shadowMapAtlas[SHADOWATLAS_COUNT];
 
 vec4 sampleFromTexAtlas(vec2 uv_coord) {
     float textureScale = float(u_textureSize) / float(u_textureAtlasSize);
@@ -59,101 +73,150 @@ vec4 sampleFromTexAtlas(vec2 uv_coord) {
 }
 
 vec3 calcLightContribution(int lightIndex) {
-    vec4 lightSpacePosition = u_lightViewProjections[lightIndex] * vec4(position, 1.0);
-
     uint lightType = u_lights[lightIndex].lightType;
-    uint priority = u_lights[lightIndex].priority;
-    uint shadowMapIndex = u_lights[lightIndex].shadowMapIndex;
+    uint shadowMapsOffset = u_lights[lightIndex].shadowMapsOffset;
+    uint shadowMapCount = u_lights[lightIndex].shadowMapCount;
+
     vec3 lightPosition = u_lights[lightIndex].lightPosition;
     vec3 direction = u_lights[lightIndex].direction;
     vec3 color = u_lights[lightIndex].color;
+
     float intensity = u_lights[lightIndex].intensity;
     float range = u_lights[lightIndex].range;
     float fovy = u_lights[lightIndex].fovy;
     float innerCutoffAngle = u_lights[lightIndex].innerCutoffAngle;
 
-    vec3 lightSpaceCoord = lightSpacePosition.xyz / lightSpacePosition.w; // Perspective divide
-    lightSpaceCoord = lightSpaceCoord * 0.5 + 0.5; // Map to [0, 1]
+    vec3 L = lightPosition - position;
+    float dist2 = dot(L, L);
 
-    // Check if the fragment is outside the light's projection bounds
-    if(lightSpaceCoord.x < 0.0 || lightSpaceCoord.x > 1.0 ||
-        lightSpaceCoord.y < 0.0 || lightSpaceCoord.y > 1.0 ||
-        lightSpaceCoord.z < 0.0 || lightSpaceCoord.z > 1.0) {
-        return vec3(0.0); // In shadow
+    if(lightType != DIRECTIONALLIGHT && dist2 >= range * range) {
+        return vec3(0.0);
     }
 
-    // Calculate the shadow map atlas layout for this light
-    float shadowMapSize = float(u_shadowMapSizes[priority]);
+    // Lighting direction
+    vec3 lightDirection;
+    float distanceToLight = 0.0;
+    if(lightType == DIRECTIONALLIGHT) {
+        lightDirection = -direction;
+    } else {
+        distanceToLight = sqrt(dist2);
+        lightDirection = L / distanceToLight;
+    }
 
-    // Compute the number of shadow maps per row in the atlas
-    float shadowAtlasSize = float(u_shadowMapAtlasSizes[priority]);
-    float tilesPerRow = shadowAtlasSize / shadowMapSize;
+    // Diffuse
+    float diffuseFactor = max(dot(normal, lightDirection), 0.0);
+    if(diffuseFactor <= 0.0)
+        return vec3(0.0);
 
-    // Determine the light's position in the shadow map atlas
-    vec2 lightShadomapPos = vec2(mod(float(shadowMapIndex), tilesPerRow), floor(float(shadowMapIndex) / tilesPerRow));
+    // Specular
+    const float specularExponent = 30.0;
+    vec3 viewDirection = normalize(u_cameraPosition - position);
+    vec3 reflectionDirection = reflect(-lightDirection, normal);
+    float specularFactor = pow(max(dot(viewDirection, reflectionDirection), 0.0), specularExponent);
 
-    // Offset the lightSpaceCoord to target the correct tile in the atlas
-    vec2 shadowMapScale = vec2(shadowMapSize / shadowAtlasSize);
-    vec2 atlasUV = lightSpaceCoord.xy / tilesPerRow + lightShadomapPos * shadowMapScale;
+    // Spotlight falloff
+    float spotFactor = 1.0;
+    if(lightType == SPOTLIGHT) {
+        float angle = degrees(acos(dot(-direction, lightDirection)));
+        spotFactor = 1.0 -
+            smoothstep(innerCutoffAngle * 0.5, fovy * 0.5, angle);
+    }
 
-    // PCF shadow sampling
-    float lightFactor = 0.0;
-    float bias = 0.0001;
-    float currentDepth = lightSpaceCoord.z;
+    // Distance falloff
+    float falloff = 1.0;
+    if(lightType != DIRECTIONALLIGHT) {
+        falloff = 1.0 -
+            smoothstep(range * 0.9, range, distanceToLight);
+    }
 
-    vec2 texelSize = vec2(1.0) / shadowAtlasSize; // Size of a single texel in shadow atlas
-    vec2 tileMin = lightShadomapPos * shadowMapScale;
-    vec2 tileMax = tileMin + shadowMapScale;
-    float validSamples = 0;
-    for(int x = -1; x <= 1; x++) {
-        for(int y = -1; y <= 1; y++) {
-            vec2 sampleOffset = vec2(x, y) * texelSize;
-            vec2 sampleUV = atlasUV + sampleOffset;
+    float lightFactor = 1.0;
+    if(shadowMapCount > 0u) {
+        // Shadow map lookup
+        if(lightType == DIRECTIONALLIGHT) {
 
-            // Stay inside the tile
-            if(all(greaterThanEqual(sampleUV, tileMin)) && all(lessThan(sampleUV, tileMax))) {
-                float pcfDepth = texture(u_shadowMapAtlas[priority], sampleUV).r;
-                lightFactor += (currentDepth <= pcfDepth + bias) ? 1.0 : 0.0;
-                validSamples += 1.0;
+            // Select the cascade based on the fragment's distance from the camera.
+            float viewDepth = -(u_view * vec4(position, 1.0)).z;
+
+            ShadowMap shadowMap = u_shadowMaps[shadowMapsOffset];
+
+            bool foundCascade = false;
+            for(uint i = 0u; i < shadowMapCount; ++i) {
+                ShadowMap candidate = u_shadowMaps[shadowMapsOffset + i];
+
+                if(viewDepth <= candidate.cascadeSplit) {
+                    shadowMap = candidate;
+                    foundCascade = true;
+                    break;
+                }
+            }
+
+            if(foundCascade) {
+                vec4 lightSpacePosition = shadowMap.viewProjection * vec4(position, 1.0);
+
+                vec3 lightSpaceCoord = lightSpacePosition.xyz / lightSpacePosition.w;
+
+                lightSpaceCoord = lightSpaceCoord * 0.5 + 0.5;
+
+                // Outside cascade projection -> no shadow information
+                if(lightSpaceCoord.x >= 0.0 && lightSpaceCoord.x <= 1.0 &&
+                    lightSpaceCoord.y >= 0.0 && lightSpaceCoord.y <= 1.0 &&
+                    lightSpaceCoord.z >= 0.0 && lightSpaceCoord.z <= 1.0) {
+
+                    vec2 atlasUV = shadowMap.atlasOffset +
+                        lightSpaceCoord.xy * shadowMap.atlasScale;
+                    lightFactor = texture(u_shadowMapAtlas[shadowMap.atlasIndex], vec3(atlasUV, lightSpaceCoord.z));
+                }
+            }
+        } else {
+
+            // Spotlights and point lights: find the shadow map that contains
+            // the fragment. Spotlights have one map, point lights have six.
+            for(uint i = 0u; i < shadowMapCount; ++i) {
+
+                ShadowMap shadowMap = u_shadowMaps[shadowMapsOffset + i];
+
+                vec4 lightSpacePosition = shadowMap.viewProjection * vec4(position, 1.0);
+
+                vec3 lightSpaceCoord = lightSpacePosition.xyz / lightSpacePosition.w;
+                lightSpaceCoord = lightSpaceCoord * 0.5 + 0.5;
+
+                if(lightSpaceCoord.x < 0.0 || lightSpaceCoord.x > 1.0 ||
+                    lightSpaceCoord.y < 0.0 || lightSpaceCoord.y > 1.0 ||
+                    lightSpaceCoord.z < 0.0 || lightSpaceCoord.z > 1.0) {
+                    continue;
+                }
+
+                vec2 atlasUV = shadowMap.atlasOffset +
+                    lightSpaceCoord.xy * shadowMap.atlasScale;
+
+                lightFactor = texture(u_shadowMapAtlas[shadowMap.atlasIndex], vec3(atlasUV, lightSpaceCoord.z));
+                break;
             }
         }
     }
-    lightFactor /= max(validSamples, 1.0);  // 1.0 if fully lit, 0.0 if fully in shadow
 
-    if(lightFactor > 0.0) {
-        // Diffuse color
-        vec3 lightDirection = normalize(lightPosition - position);
-        float diffuseFactor = max(dot(normal, lightDirection), 0.0);
-
-        // Specular color
-        vec3 viewDirection = normalize(u_cameraPosition - position);
-        vec3 reflectionDirection = reflect(-lightDirection, normal);
-        float specularEpxponent = 30.0;
-        float specularFactor = pow(max(dot(viewDirection, reflectionDirection), 0.0), specularEpxponent);
-
-        float spotFactor = 1.0;
-        if(lightType == SPOTLIGHT) {
-            // Spot effect
-            float angle = degrees(acos(dot(-direction, lightDirection)));
-            spotFactor = 1.0 - smoothstep(innerCutoffAngle / 2.0, fovy / 2.0, angle);
-        }
-
-        // Distant fade
-        float falloff = 1.0;
-        if(lightType == SPOTLIGHT || lightType == POINTLIGHT) {
-            float distanceToLight = length(lightPosition - position);
-            float falloffStartRange = range * 0.9;
-            falloff = 1.0 - smoothstep(falloffStartRange, range, distanceToLight);
-        }
-
-        return color * intensity * falloff * spotFactor * lightFactor * (diffuseFactor + specularFactor);
-    } else {
-        return vec3(0.0);
-    }
+    return color *
+        intensity *
+        falloff *
+        spotFactor *
+        lightFactor *
+        (diffuseFactor + specularFactor);
 }
 
 void main() {
     vec2 uv_frag = fract(uv); // Effectively modulo for repeating texture on faces larger 1
+
+    // Gradual fade to black for distant elements
+    float dist = length(u_cameraPosition - position);
+    float dropoffStartDistance = 50.0;
+    float fadeDistance = 32.0;
+
+    float fade = 1.0;
+    if(dist > dropoffStartDistance) {
+        fade = 1.0 - smoothstep(dropoffStartDistance, dropoffStartDistance + fadeDistance, dist);
+        if(fade <= 0.0)
+            discard;
+    }
 
     // Sample the texture atlas
     vec4 texColor = sampleFromTexAtlas(uv_frag);
@@ -174,14 +237,5 @@ void main() {
     float occlusion = texture(u_ssaoTexture, screenUV).r;  // SSAO value [0, 1]
     color = ((0.15 * color) + (0.85 * clamp(lightContrib * color, 0.0, 1.0))) * occlusion;
 
-    // Gradual fade to black for distant elements
-    float dist = length(u_cameraPosition - position);
-    float dropoffStartDistance = 50.0;
-    float fadeDistance = 32.0;
-    if(dist > dropoffStartDistance) {
-        float fade = smoothstep(dropoffStartDistance, dropoffStartDistance + fadeDistance, dist);
-        color *= 1.0 - fade;
-    }
-
-    outColor = vec4(color, 1.0);
+    outColor = vec4(color * fade, 1.0);
 }

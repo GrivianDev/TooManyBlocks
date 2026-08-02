@@ -21,9 +21,7 @@ public:
         m_internal.innerCutoffAngle = std::min<float>(angle, m_internal.fovy);
     }
 
-    LightType getType() const override;
-    glm::mat4 getProjectionMatrix() const override;
-    glm::mat4 getViewMatrix() const override;
+    virtual inline unsigned int faceCount() const override { return 1; }
 };
 
 #endif

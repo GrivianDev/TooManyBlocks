@@ -67,11 +67,10 @@ void Renderer::init() {
     std::unique_ptr<FXAARenderpass> fxaaRenderpass = std::make_unique<FXAARenderpass>();
 
     LightProcessor& lightProcessor = shadowpass->getLightProcessor();
-    m_renderResources.priodLightsBuffer.reserve(lightProcessor.totalSupportedLights());
+    m_renderResources.priodLightsBuffer.reserve(lightProcessor.getTotalSupportedLights());
     m_currentRenderContext.lInfo.shadowMapAtlases = lightProcessor.getShadowMapAtlases();
-    m_currentRenderContext.lInfo.shadowMapSizes = lightProcessor.getShadowMapSizes();
-    m_currentRenderContext.lInfo.lightBuff = lightProcessor.getShaderLightUniformBuffer();
-    m_currentRenderContext.lInfo.lightViewProjectionBuff = lightProcessor.getLightViewProjectionUniformBuffer();
+    m_currentRenderContext.lInfo.lightBuff = lightProcessor.getLightUniformBuffer();
+    m_currentRenderContext.lInfo.shadowMapBuff = lightProcessor.getShadowMapUniformBuffer();
 
     renderpasses.push_back(std::move(transformFeebackpass));
     renderpasses.push_back(std::move(shadowpass));

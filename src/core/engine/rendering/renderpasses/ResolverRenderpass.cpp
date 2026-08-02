@@ -20,7 +20,8 @@ void ResolverRenderpass::prepare(
     }
 
     m_resolverBuffer.bind();
-    GLCALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    GLCALL(glDisable(GL_DEPTH_TEST));
+    GLCALL(glClear(GL_COLOR_BUFFER_BIT));
     glm::uvec2 screenRes = context.currScreenRes;
     GLCALL(glViewport(0, 0, screenRes.x, screenRes.y));
 }
@@ -48,6 +49,7 @@ void ResolverRenderpass::cleanup(
     const ApplicationContext& appContext
 ) {
     context.resolverInfo.output = m_resolverBuffer.getAttachedTextures().at(0).get();
+    GLCALL(glEnable(GL_DEPTH_TEST));
 }
 
 ResolverRenderpass::ResolverRenderpass() {

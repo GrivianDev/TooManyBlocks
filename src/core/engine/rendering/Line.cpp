@@ -15,7 +15,7 @@ Line::Line(const glm::vec3& start, const glm::vec3& end, float lineWidth, std::s
     VertexBufferLayout layout;
     layout.push(GL_FLOAT, 3);
     vbo.setLayout(layout);
-    VertexArray vao;
+    VertexArray vao = VertexArray::create();
     vao.addBuffer(vbo);
 
     m_data = std::make_unique<NonIndexedRenderData>(std::move(vao), std::move(vbo));

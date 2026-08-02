@@ -12,7 +12,8 @@
 
 void FXAARenderpass::prepare(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
     FrameBuffer::bindDefault();
-    GLCALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    GLCALL(glDisable(GL_DEPTH_TEST));
+    GLCALL(glClear(GL_COLOR_BUFFER_BIT));
     glm::uvec2 screenRes = context.currScreenRes;
     GLCALL(glViewport(0, 0, screenRes.x, screenRes.y));
 }
@@ -28,6 +29,7 @@ void FXAARenderpass::execute(RenderContext& context, RenderResources& resources,
 }
 
 void FXAARenderpass::cleanup(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
+    GLCALL(glEnable(GL_DEPTH_TEST));
 }
 
 FXAARenderpass::FXAARenderpass() {

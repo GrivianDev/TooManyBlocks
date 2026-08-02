@@ -22,6 +22,7 @@ void ChunkMaterial::bindForPass(PassType passType, const RenderContext& context)
         Shader& mainShader = m_mainShader.value();
 
         mainShader.use();
+        mainShader.setUniform("u_view", context.tInfo.view);
         mainShader.setUniform("u_viewProjection", context.tInfo.viewProjection);
         mainShader.setUniform("u_cameraPosition", context.tInfo.viewportTransform.getPosition());
 
@@ -38,7 +39,7 @@ void ChunkMaterial::bindForPass(PassType passType, const RenderContext& context)
         // Pass light info
         mainShader.setUniform("u_lightCount", static_cast<int>(context.lInfo.activeLightsCount));
         mainShader.bindUniformBuffer("LightsBlock", *context.lInfo.lightBuff);
-        mainShader.bindUniformBuffer("LightViewProjBlock", *context.lInfo.lightViewProjectionBuff);
+        mainShader.bindUniformBuffer("ShadowMapsBlock", *context.lInfo.shadowMapBuff);
 
         if (context.ssaoInfo.output) {
             context.ssaoInfo.output->bindToUnit(1);
@@ -47,15 +48,13 @@ void ChunkMaterial::bindForPass(PassType passType, const RenderContext& context)
         mainShader.setUniform("u_screenResolution", context.currScreenRes);
 
         // Pass depth buffers for shadowmapping
-        for (int prio = 0; prio < LightPriority::Count; prio++) {
-            if (const Texture* shadowAtlas = context.lInfo.shadowMapAtlases[prio]) {
-                const std::string strPrio = std::to_string(prio);
-                shadowAtlas->bindToUnit(prio + 2);
-                mainShader.setUniform("u_shadowMapAtlas[" + strPrio + "]", prio + 2);
-                mainShader.setUniform("u_shadowMapAtlasSizes[" + strPrio + "]", shadowAtlas->width());
-                mainShader.setUniform("u_shadowMapSizes[" + strPrio + "]", context.lInfo.shadowMapSizes[prio]);
+        for (int atlasIndex = 0; atlasIndex < SHADOW_ATLAS_COUNT; atlasIndex++) {
+            if (const Texture* shadowAtlas = context.lInfo.shadowMapAtlases[atlasIndex]) {
+                const std::string idxStr = std::to_string(atlasIndex);
+                shadowAtlas->bindToUnit(atlasIndex + 2);
+                mainShader.setUniform("u_shadowMapAtlas[" + idxStr + "]", atlasIndex + 2);
             } else {
-                lgr::lout.error("Shadow map atlas for prio " + std::to_string(prio) + " not loaded for ChunkMaterial");
+                lgr::lout.error("Shadow map atlas for prio " + std::to_string(atlasIndex) + " not loaded for ChunkMaterial");
             }
         }
     } else if (passType == PassType::ShadowPass) {

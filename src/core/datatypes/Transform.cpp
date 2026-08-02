@@ -69,18 +69,18 @@ void Transform::scale(float factor) {
 }
 
 void Transform::lookAt(const glm::vec3& target, const glm::vec3& up) {
+    // Alternative
     // glm::mat4 lookAtMatrix = glm::lookAt(m_position, target, up);
     // m_rotation = glm::quat_cast(lookAtMatrix);
-
-    // TODO Test if this works
+    
     glm::vec3 forward = glm::normalize(target - m_position);
-    glm::vec3 right = glm::normalize(glm::cross(up, forward));
-    glm::vec3 newUp = glm::cross(forward, right);
+    glm::vec3 right = glm::normalize(glm::cross(forward, up));
+    glm::vec3 newUp = glm::cross(right, forward);
 
     glm::mat3 rotationMatrix;
     rotationMatrix[0] = right;
     rotationMatrix[1] = newUp;
-    rotationMatrix[2] = forward;
+    rotationMatrix[2] = -forward;
 
     m_rotation = glm::quat_cast(rotationMatrix);
     m_dirty = true;
