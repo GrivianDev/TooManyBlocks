@@ -7,7 +7,7 @@
 
 #include "engine/animation/Animation.h"
 #include "engine/rendering/Vertices.h"
-#include "engine/resource/cpu/CPURenderData.h"
+#include "engine/assets/cpu/CPURenderData.h"
 
 struct ChannelDeclare {
     int targetNodeIndex;
@@ -15,7 +15,7 @@ struct ChannelDeclare {
     std::shared_ptr<TimelineBase> timeline;
 };
 
-struct AnimationdDeclare {
+struct AnimationDeclare {
     std::string name;
     std::vector<ChannelDeclare> channels;
 };
@@ -33,7 +33,7 @@ struct CPUSkeletalMeshData {
     int animatedMeshNodeIndex;
     std::vector<glm::mat4> inverseBindMatrices;  // indexed by joint index
     std::vector<int> jointNodeIndices;           // indexed by joint index (Needed to build joint matrices)
-    std::vector<AnimationdDeclare> animations;
+    std::vector<AnimationDeclare> animations;
 };
 
 #endif

@@ -12,7 +12,7 @@
 #include "engine/GameInstance.h"
 #include "engine/entity/Player.h"
 #include "engine/rendering/GLUtils.h"
-#include "engine/resource/loaders/ShaderLoader.h"
+#include "engine/assets/loaders/ShaderLoader.h"
 
 static constexpr float PI = 3.14159265f;
 static constexpr size_t NOISE_TEXTURE_SIZE = 4U;

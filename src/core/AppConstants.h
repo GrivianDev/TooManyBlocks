@@ -15,6 +15,8 @@ namespace Res {
         constexpr const char* TRANSPARENT = "res/shaders/transparencyShader";
         constexpr const char* RESOLVER = "res/shaders/resolverShader";
         constexpr const char* FXAA = "res/shaders/fxaaShader";
+        constexpr const char* PARTICLE = "res/shaders/particleShader";
+        constexpr const char* PARTICLE_TF = "res/shaders/particleTFShader";
     }  // namespace Shader
 
     namespace Texture {
@@ -31,7 +33,7 @@ namespace Res {
     namespace Model {
         constexpr const char* TEST_UNIT_BLOCK = "res/models/testUnitBlock.obj";
         constexpr const char* TESTFLY = "res/models/testFly.glb";
-    }
+    }  // namespace Model
 };  // namespace Res
 
 #endif

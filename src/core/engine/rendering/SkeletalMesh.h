@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "engine/animation/Animation.h"
+#include "engine/assets/cpu/CPUSkeletalMeshData.h"
 #include "engine/geometry/BoundingVolume.h"
 #include "engine/rendering/RenderData.h"
 #include "engine/rendering/Renderable.h"
@@ -12,34 +13,33 @@
 
 class SkeletalMesh : public Renderable, public Updatable {
 public:
-    struct Shared {
+    struct Asset {
         std::unique_ptr<RenderData> meshData;
+
         UniformBuffer inverseBindMatricesUBO;
         std::vector<glm::mat4> inverseBindMatrices;
         std::vector<int> jointNodeIndices;  // indexed by joint index (Needed to build joint matrices)
-    };
 
-    struct Instance {
+        std::vector<Node> nodeArray;
         int animatedMeshNodeIndex;
-        std::vector<SceneComponent> nodeArray;
-        std::vector<Animation> animations;
-        UniformBuffer jointMatricesUBO;
+        std::vector<AnimationDeclare> animations;
         BoundingBox bounds;
     };
 
-    struct Internal {
-        std::shared_ptr<Shared> shared;
-        Instance instance;
+    struct Instance {
+        std::vector<SceneComponent> nodeArray;
+        std::vector<Animation> animations;
+        UniformBuffer jointMatricesUBO;
     };
 
 private:
-    Future<Internal> m_internalHandle;
+    Future<Asset> m_asset;
+    Future<Instance> m_instance;
     Animation* m_activeAnim;
 
 public:
     SkeletalMesh() : m_activeAnim(nullptr) {}
-    SkeletalMesh(const Future<Internal>& internalHandle, std::shared_ptr<Material> material = nullptr)
-        : Renderable(material), m_internalHandle(internalHandle), m_activeAnim(nullptr) {}
+    SkeletalMesh(const Future<Asset>& asset, std::shared_ptr<Material> material = nullptr);
     virtual ~SkeletalMesh() = default;
 
     void draw() const override;
@@ -48,11 +48,11 @@ public:
 
     void stopAnimation();
 
-    inline bool isReady() const override { return Renderable::isReady() && m_internalHandle.isReady(); }
+    inline bool isReady() const override { return Renderable::isReady() && m_asset.isReady() && m_instance.isReady(); }
 
     inline const Animation* getActiveAnimation() const { return m_activeAnim; }
 
-    inline Future<Internal>& getAssetHandle() { return m_internalHandle; }
+    inline Future<Asset>& getAssetHandle() { return m_asset; }
 
     const UniformBuffer* getJointMatrices() const;
 

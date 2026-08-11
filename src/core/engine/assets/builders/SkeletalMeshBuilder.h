@@ -2,9 +2,9 @@
 #define TOOMANYBLOCKS_SKELETALMESHBUILDER_H
 
 #include "engine/rendering/SkeletalMesh.h"
-#include "engine/resource/cpu/CPUSkeletalMeshData.h"
+#include "engine/assets/cpu/CPUSkeletalMeshData.h"
 #include "foundation/threading/Future.h"
 
-Future<SkeletalMesh::Internal> build(const Future<CPUSkeletalMeshData>& cpuMesh);
+Future<SkeletalMesh::Asset> build(const Future<CPUSkeletalMeshData>& cpuMesh);
 
 #endif

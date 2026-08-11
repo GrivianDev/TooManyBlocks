@@ -3,7 +3,6 @@
 
 #include <glm/glm.hpp>
 #include <memory>
-#include <unordered_map>
 
 #include "datatypes/DatatypeDefs.h"
 #include "engine/rendering/StaticMesh.h"
@@ -40,7 +39,7 @@ private:
     bool m_isMarkedForSave;  // If there are changes that need to be written back chunk file
     Future<std::unique_ptr<Block[]>> m_blocks;
     StaticMesh m_mesh;
-    Future<StaticMesh::Internal> m_pendingRebuildMesh;
+    Future<StaticMesh::Asset> m_pendingRebuildMesh;
 
 public:
     static glm::ivec3 worldToChunkOrigin(const glm::vec3& worldPos);

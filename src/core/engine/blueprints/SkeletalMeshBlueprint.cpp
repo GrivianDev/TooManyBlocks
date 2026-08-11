@@ -2,11 +2,14 @@
 
 #include <GL/glew.h>
 
+#include <memory>
+
 #include "engine/rendering/lowlevelapi/IndexBuffer.h"
+#include "engine/rendering/lowlevelapi/UniformBuffer.h"
 #include "engine/rendering/lowlevelapi/VertexArray.h"
 #include "engine/rendering/lowlevelapi/VertexBuffer.h"
 
-std::shared_ptr<SkeletalMesh::Shared> createSharedState(const CPUSkeletalMeshData& cpuSkeletalMesh) {
+SkeletalMesh::Asset createSkeletalMeshAsset(const CPUSkeletalMeshData& cpuSkeletalMesh) {
     VertexBuffer vbo = VertexBuffer::create(
         cpuSkeletalMesh.meshData.vertices.data(), cpuSkeletalMesh.meshData.vertices.size() * sizeof(SkeletalVertex)
     );
@@ -36,59 +39,14 @@ std::shared_ptr<SkeletalMesh::Shared> createSharedState(const CPUSkeletalMeshDat
         cpuSkeletalMesh.inverseBindMatrices.data(), cpuSkeletalMesh.inverseBindMatrices.size() * sizeof(glm::mat4)
     );
 
-    return std::make_shared<SkeletalMesh::Shared>(SkeletalMesh::Shared{
+    return SkeletalMesh::Asset{
         std::move(renderData),
         std::move(inverseBindMatricesUBO),
         cpuSkeletalMesh.inverseBindMatrices,
-        cpuSkeletalMesh.jointNodeIndices
-    });
-}
-
-SkeletalMesh::Instance createInstanceState(const CPUSkeletalMeshData& cpuSkeletalMesh) {
-    std::vector<SceneComponent> sceneCompArray(cpuSkeletalMesh.nodeArray.size());
-    for (size_t i = 0; i < sceneCompArray.size(); i++) {
-        sceneCompArray[i].getLocalTransform() = cpuSkeletalMesh.nodeArray[i].localTransform;
-        for (int childIndex : cpuSkeletalMesh.nodeArray[i].childIndices) {
-            sceneCompArray[cpuSkeletalMesh.nodeArray[childIndex].parentIndex].attachChild(&sceneCompArray[childIndex]);
-        }
-    }
-
-    std::vector<glm::mat4> initalMatrices(std::max<int>(cpuSkeletalMesh.jointNodeIndices.size(), 4));
-    for (size_t i = 0; i < initalMatrices.size(); i++) {
-        initalMatrices[i] = glm::mat4(1.0f);
-    }
-
-    std::vector<Animation> animInstances;
-    animInstances.reserve(cpuSkeletalMesh.animations.size());
-
-    for (const AnimationdDeclare& anim : cpuSkeletalMesh.animations) {
-        Animation animInstance(anim.name);
-        for (const ChannelDeclare& channelDecl : anim.channels) {
-            if (channelDecl.property == AnimationProperty::Translation) {
-                animInstance.addTranslationChannel(
-                    &sceneCompArray[channelDecl.targetNodeIndex],
-                    std::static_pointer_cast<Timeline<glm::vec3>>(channelDecl.timeline)
-                );
-            } else if (channelDecl.property == AnimationProperty::Rotation) {
-                animInstance.addRotationChannel(
-                    &sceneCompArray[channelDecl.targetNodeIndex],
-                    std::static_pointer_cast<Timeline<glm::quat>>(channelDecl.timeline)
-                );
-            } else if (channelDecl.property == AnimationProperty::Scale) {
-                animInstance.addScaleChannel(
-                    &sceneCompArray[channelDecl.targetNodeIndex],
-                    std::static_pointer_cast<Timeline<float>>(channelDecl.timeline)
-                );
-            }
-        }
-        animInstances.push_back(std::move(animInstance));
-    }
-
-    return {
+        cpuSkeletalMesh.jointNodeIndices,
+        cpuSkeletalMesh.nodeArray,
         cpuSkeletalMesh.animatedMeshNodeIndex,
-        std::move(sceneCompArray),
-        std::move(animInstances),
-        UniformBuffer::create(initalMatrices.data(), initalMatrices.size() * sizeof(glm::mat4)),
+        cpuSkeletalMesh.animations,
         cpuSkeletalMesh.meshData.bounds
     };
 }

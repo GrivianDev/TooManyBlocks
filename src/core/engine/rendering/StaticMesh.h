@@ -10,32 +10,25 @@
 
 class StaticMesh : public Renderable {
 public:
-    struct Shared {
+    struct Asset {
         std::unique_ptr<RenderData> renderData;
-    };
-    struct Instance {
         BoundingBox bounds;
     };
 
-    struct Internal {
-        std::shared_ptr<Shared> shared;
-        Instance instance;
-    };
-
 private:
-    Future<Internal> m_internalHandle;
+    Future<Asset> m_asset;
 
 public:
     StaticMesh() = default;
-    StaticMesh(const Future<Internal>& internalHandle, std::shared_ptr<Material> material = nullptr)
-        : Renderable(material), m_internalHandle(internalHandle) {}
+    StaticMesh(const Future<Asset>& asset, std::shared_ptr<Material> material = nullptr)
+        : Renderable(material), m_asset(asset) {}
     virtual ~StaticMesh() = default;
 
     void draw() const override;
 
-    inline bool isReady() const override { return Renderable::isReady() && m_internalHandle.isReady(); }
+    inline bool isReady() const override { return Renderable::isReady() && m_asset.isReady(); }
 
-    inline Future<Internal>& getAssetHandle() { return m_internalHandle; }
+    inline Future<Asset>& getAssetHandle() { return m_asset; }
 
     virtual BoundingBox getBoundingBox() const override;
 };

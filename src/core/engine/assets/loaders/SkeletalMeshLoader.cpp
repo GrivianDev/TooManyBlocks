@@ -419,7 +419,7 @@ CPUSkeletalMeshData loadSkeletalMeshFromGlbFile(const std::string& glbFilePath, 
             // Parse animations
             skData.animations.reserve(jsonChunkObj["animations"].toArray().size());
             for (const Json::JsonValue& animationJson : jsonChunkObj["animations"].toArray()) {
-                AnimationdDeclare animDeclaration;
+                AnimationDeclare animDeclaration;
                 animDeclaration.name = animationJson["name"].toString();
                 animDeclaration.channels.reserve(animationJson["channels"].toArray().size());
 

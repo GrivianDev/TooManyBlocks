@@ -12,7 +12,7 @@
 #include "engine/rendering/BlockToTextureMapping.h"
 #include "engine/rendering/Vertices.h"
 #include "engine/rendering/mat/ChunkMaterial.h"
-#include "engine/resource/cpu/CPURenderData.h"
+#include "engine/assets/cpu/CPURenderData.h"
 #include "foundation/threading/Future.h"
 
 class World {

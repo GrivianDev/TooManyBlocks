@@ -1,10 +1,10 @@
 #include "ShaderBuilder.h"
 
-Future<Shader> build(const Future<CPUShader>& cpuShader) {
+Future<Shader> build(const Future<CPUShader>& cpuShader, const ShaderDefines& defines) {
     Future<Shader> shaderFuture(
-        [cpuShader]() {
+        [cpuShader, defines]() {
             const CPUShader& cpu = cpuShader.value();
-            return Shader::create(cpu.vertexShader, cpu.fragmentShader);
+            return Shader::create(cpu.vertexShader, cpu.fragmentShader, defines);
         },
         DEFAULT_TASKCONTEXT,
         Executor::Main
@@ -15,12 +15,13 @@ Future<Shader> build(const Future<CPUShader>& cpuShader) {
 
 Future<TransformFeedbackShader> buildTFShader(
     const Future<CPUShader>& cpuShader,
-    const std::vector<std::string>& varyings
+    const std::vector<std::string>& varyings,
+    const ShaderDefines& defines
 ) {
     Future<TransformFeedbackShader> tfFuture(
-        [cpuShader, varyings]() {
+        [cpuShader, varyings, defines]() {
             const CPUShader& cpu = cpuShader.value();
-            return TransformFeedbackShader::create(cpu.vertexShader, varyings);
+            return TransformFeedbackShader::create(cpu.vertexShader, varyings, defines);
         },
         DEFAULT_TASKCONTEXT,
         Executor::Main

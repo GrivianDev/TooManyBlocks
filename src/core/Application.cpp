@@ -5,8 +5,9 @@
 #include "AppConstants.h"
 #include "Logger.h"
 #include "engine/GameInstance.h"
+#include "engine/assets/AssetManager.h"
+#include "engine/assets/AssetSetup.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/resource/providers/CPUAssetProvider.h"
 #include "engine/ui/AboutScreen.h"
 #include "engine/ui/GameOverlay.h"
 #include "engine/ui/MainMenu.h"
@@ -48,7 +49,7 @@ void Application::createContext() {
 
     context->timer = new Timer;
     context->workerPool = new ThreadPool(WORKER_COUNT);
-    context->provider = new CPUAssetProvider;
+    context->assets = new AssetManager;
     context->renderer = new Renderer;
     context->audioEngine = new AudioEngine;
     context->instance = new GameInstance;
@@ -61,7 +62,7 @@ void Application::createContext() {
 void Application::deleteContext() {
     if (ApplicationContext* context = Application::currentContext) {
         delete context->timer;
-        delete context->provider;
+        delete context->assets;
         delete context->renderer;
         delete context->instance;
         delete context->audioEngine;
@@ -81,9 +82,15 @@ void Application::init() {
 
     // Create current context
     createContext();
+
+    // Setup asset manager
     ApplicationContext* context = Application::getContext();
 
+    registerAssetFactories(*context->assets);
+    setupAssets(*context->assets);
+
     // Set initial screen dimensions
+
     context->state.screenWidth = 960;
     context->state.screenHeight = 540;
 
@@ -130,6 +137,7 @@ void Application::execute() {
                 context->renderer->render(*context);
             }
 
+            context->assets->update(context->timer->deltaSeconds());
             context->audioEngine->update(context->timer->deltaSeconds());
             context->workerPool->processMainThreadJobs();
             context->workerPool->cleanupFinishedJobs();

@@ -15,6 +15,10 @@ private:
     std::unordered_map<std::string, std::string> m_defines;
 
 public:
+    ShaderDefines() = default;
+
+    inline ShaderDefines(const std::unordered_map<std::string, std::string>& defines) : m_defines(defines) {}
+
     inline void add(const std::string& key, const std::string& value = "") { m_defines.emplace(key, value); }
 
     inline const std::unordered_map<std::string, std::string>& definitions() const { return m_defines; }

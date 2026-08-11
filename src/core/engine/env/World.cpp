@@ -7,16 +7,14 @@
 #include <memory>
 #include <vector>
 
-#include "AppConstants.h"
 #include "Application.h"
 #include "Logger.h"
+#include "engine/assets/AssetManager.h"
+#include "engine/assets/EngineAssets.h"
 #include "engine/blueprints/ChunkMeshBlueprint.h"
-#include "engine/builders/ShaderBuilder.h"
-#include "engine/builders/TextureBuilder.h"
 #include "engine/rendering/Renderer.h"
 #include "engine/rendering/StaticMesh.h"
 #include "engine/rendering/mat/ChunkMaterial.h"
-#include "engine/resource/providers/CPUAssetProvider.h"
 #include "engine/worldgen/PerlinNoise.h"
 #include "foundation/threading/ThreadPool.h"
 #include "foundation/util/Utility.h"
@@ -101,11 +99,11 @@ World::World(const std::filesystem::path& worldDir) : m_worldDir(worldDir), m_cS
     Json::JsonValue info = Json::parseJson(readFile(worldDir / "info.json"));
     m_seed = static_cast<uint32_t>(std::stoul(info["seed"].toString()));
 
-    CPUAssetProvider* provider = Application::getContext()->provider;
-    Future<Shader> mainShader = build(provider->getShader(Res::Shader::CHUNK));
-    Future<Shader> depthShader = build(provider->getShader(Res::Shader::CHUNK_DEPTH));
-    Future<Shader> ssaoGBuffShader = build(provider->getShader(Res::Shader::CHUNK_SSAO_GBUFFER));
-    Future<Texture> texture = build(provider->getTexture(Res::Texture::BLOCK_TEX_ATLAS));
+    AssetManager* assets = Application::getContext()->assets;
+    Future<Shader> mainShader = assets->request<Shader>(Assets::Shader::CHUNK);
+    Future<Shader> depthShader = assets->request<Shader>(Assets::Shader::CHUNK_DEPTH);
+    Future<Shader> ssaoGBuffShader = assets->request<Shader>(Assets::Shader::CHUNK_SSAO_GBUFFER);
+    Future<Texture> texture = assets->request<Texture>(Assets::Texture::BLOCK_TEX_ATLAS);
     m_chunkMaterial = std::make_shared<ChunkMaterial>(mainShader, depthShader, ssaoGBuffShader, texture);
 }
 
@@ -193,11 +191,9 @@ void World::updateChunks(const glm::ivec3& position) {
             );
             cpuMeshBuildFuture.dependsOn(blockGenFuture).start();
 
-            Future<StaticMesh::Internal> meshCreateFuture(
+            Future<StaticMesh::Asset> meshCreateFuture(
                 [cpuMeshBuildFuture]() {
-                    return StaticMesh::Internal{
-                        createSharedState(cpuMeshBuildFuture.value()), createInstanceState(cpuMeshBuildFuture.value())
-                    };
+                    return createStaticMeshAsset(cpuMeshBuildFuture.value());
                 },
                 m_taskContext,
                 Executor::Main
@@ -227,11 +223,9 @@ void World::updateChunks(const glm::ivec3& position) {
             );
             cpuMeshBuildFuture.start();
 
-            Future<StaticMesh::Internal> meshCreateFuture(
+            Future<StaticMesh::Asset> meshCreateFuture(
                 [cpuMeshBuildFuture]() {
-                    return StaticMesh::Internal{
-                        createSharedState(cpuMeshBuildFuture.value()), createInstanceState(cpuMeshBuildFuture.value())
-                    };
+                    return createStaticMeshAsset(cpuMeshBuildFuture.value());
                 },
                 m_taskContext,
                 Executor::Main

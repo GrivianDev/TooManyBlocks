@@ -2,7 +2,9 @@
 
 #include <GL/glew.h>
 
-std::shared_ptr<StaticMesh::Shared> createSharedState(const CPURenderData<Vertex>& cpuStaticMesh) {
+#include <memory>
+
+StaticMesh::Asset createStaticMeshAsset(const CPURenderData<Vertex>& cpuStaticMesh) {
     VertexBuffer vbo = VertexBuffer::create(
         cpuStaticMesh.vertices.data(), cpuStaticMesh.vertices.size() * sizeof(Vertex)
     );
@@ -21,13 +23,9 @@ std::shared_ptr<StaticMesh::Shared> createSharedState(const CPURenderData<Vertex
         std::unique_ptr<RenderData> renderData = std::make_unique<IndexedRenderData>(
             std::move(vao), std::move(vbo), std::move(ibo)
         );
-        return std::make_shared<StaticMesh::Shared>(StaticMesh::Shared{std::move(renderData)});
+        return StaticMesh::Asset{std::move(renderData), cpuStaticMesh.bounds};
     } else {
         std::unique_ptr<RenderData> renderData = std::make_unique<NonIndexedRenderData>(std::move(vao), std::move(vbo));
-        return std::make_shared<StaticMesh::Shared>(StaticMesh::Shared{std::move(renderData)});
+        return StaticMesh::Asset{std::move(renderData), cpuStaticMesh.bounds};
     }
-}
-
-StaticMesh::Instance createInstanceState(const CPURenderData<Vertex>& cpuStaticMesh) {
-    return StaticMesh::Instance{cpuStaticMesh.bounds};
 }

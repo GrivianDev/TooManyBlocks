@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "engine/resource/cpu/CPUTexture.h"
+#include "engine/assets/cpu/CPUTexture.h"
 
 CPUTexture loadTextureFromFile(const std::string& texturePath);
 

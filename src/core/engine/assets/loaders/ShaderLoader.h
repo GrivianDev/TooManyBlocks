@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "engine/resource/cpu/CPUShader.h"
+#include "engine/assets/cpu/CPUShader.h"
 
 enum class ShaderLoadOption {
     VertexAndFragment,

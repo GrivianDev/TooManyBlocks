@@ -6,7 +6,7 @@
 
 #include "engine/rendering/RenderData.h"
 #include "engine/rendering/Vertices.h"
-#include "engine/resource/cpu/CPURenderData.h"
+#include "engine/assets/cpu/CPURenderData.h"
 
 CPURenderData<Vertex> loadStaticMeshFromObjFile(const std::string& objFilePath, bool flipWinding = false);
 

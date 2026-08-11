@@ -29,7 +29,7 @@ struct ApplicationContext {
 
     class Timer* timer;
     class ThreadPool* workerPool;
-    class CPUAssetProvider* provider;
+    class AssetManager* assets;
     class Renderer* renderer;
     class AudioEngine* audioEngine;
     class GameInstance* instance;

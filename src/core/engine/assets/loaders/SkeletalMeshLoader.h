@@ -6,7 +6,7 @@
 
 #include "engine/rendering/RenderData.h"
 #include "engine/rendering/Vertices.h"
-#include "engine/resource/cpu/CPUSkeletalMeshData.h"
+#include "engine/assets/cpu/CPUSkeletalMeshData.h"
 
 CPUSkeletalMeshData loadSkeletalMeshFromGlbFile(const std::string& glbFilePath, bool flipWinding = false);
 

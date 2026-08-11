@@ -2,16 +2,73 @@
 
 #include <GL/glew.h>
 
-void SkeletalMesh::draw() const {
-    if (!m_internalHandle.isReady()) return;
+SkeletalMesh::SkeletalMesh(const Future<Asset>& asset, std::shared_ptr<Material> material)
+    : Renderable(material), m_asset(asset), m_activeAnim(nullptr) {
+    m_instance = Future<Instance>(
+        [asset]() {
+            const Asset& assetVal = asset.value();
+            std::vector<SceneComponent> sceneCompArray(assetVal.nodeArray.size());
+            for (size_t i = 0; i < sceneCompArray.size(); i++) {
+                sceneCompArray[i].getLocalTransform() = assetVal.nodeArray[i].localTransform;
+                for (int childIndex : assetVal.nodeArray[i].childIndices) {
+                    sceneCompArray[assetVal.nodeArray[childIndex].parentIndex].attachChild(&sceneCompArray[childIndex]);
+                }
+            }
 
-    m_internalHandle.value().shared->meshData->drawAs(GL_TRIANGLES);
+            std::vector<glm::mat4> initalMatrices(std::max<int>(assetVal.jointNodeIndices.size(), 4));
+            for (size_t i = 0; i < initalMatrices.size(); i++) {
+                initalMatrices[i] = glm::mat4(1.0f);
+            }
+
+            std::vector<Animation> animInstances;
+            animInstances.reserve(assetVal.animations.size());
+
+            for (const AnimationDeclare& anim : assetVal.animations) {
+                Animation animInstance(anim.name);
+                for (const ChannelDeclare& channelDecl : anim.channels) {
+                    if (channelDecl.property == AnimationProperty::Translation) {
+                        animInstance.addTranslationChannel(
+                            &sceneCompArray[channelDecl.targetNodeIndex],
+                            std::static_pointer_cast<Timeline<glm::vec3>>(channelDecl.timeline)
+                        );
+                    } else if (channelDecl.property == AnimationProperty::Rotation) {
+                        animInstance.addRotationChannel(
+                            &sceneCompArray[channelDecl.targetNodeIndex],
+                            std::static_pointer_cast<Timeline<glm::quat>>(channelDecl.timeline)
+                        );
+                    } else if (channelDecl.property == AnimationProperty::Scale) {
+                        animInstance.addScaleChannel(
+                            &sceneCompArray[channelDecl.targetNodeIndex],
+                            std::static_pointer_cast<Timeline<float>>(channelDecl.timeline)
+                        );
+                    }
+                }
+                animInstances.push_back(std::move(animInstance));
+            }
+
+            return Instance{
+                std::move(sceneCompArray),
+                std::move(animInstances),
+                UniformBuffer::create(initalMatrices.data(), initalMatrices.size() * sizeof(glm::mat4))
+            };
+        },
+        DEFAULT_TASKCONTEXT,
+        Executor::Main
+    );
+
+    m_instance.dependsOn(asset).start();
+}
+
+void SkeletalMesh::draw() const {
+    if (!isReady()) return;
+
+    m_asset.value().meshData->drawAs(GL_TRIANGLES);
 }
 
 bool SkeletalMesh::playAnimation(const std::string& animName, bool loop, bool restart) {
-    if (!m_internalHandle.isReady()) return false;
+    if (!isReady()) return false;
 
-    for (Animation& anim : m_internalHandle.value().instance.animations) {
+    for (Animation& anim : m_instance.value().animations) {
         if (anim.getName() == animName) {
             if (restart) {
                 anim.reset();
@@ -27,38 +84,38 @@ bool SkeletalMesh::playAnimation(const std::string& animName, bool loop, bool re
 void SkeletalMesh::stopAnimation() { m_activeAnim = nullptr; }
 
 const UniformBuffer* SkeletalMesh::getJointMatrices() const {
-    if (!m_internalHandle.isReady()) return nullptr;
+    if (!isReady()) return nullptr;
 
-    const std::vector<int>& jointNodeIndices = m_internalHandle.value().shared->jointNodeIndices;
+    const std::vector<int>& jointNodeIndices = m_asset.value().jointNodeIndices;
 
     std::vector<glm::mat4> jointMatrices;
     jointMatrices.reserve(jointNodeIndices.size());
 
     for (int i = 0; i < jointNodeIndices.size(); i++) {
         int jointIdx = jointNodeIndices[i];
-        const SceneComponent& joint = m_internalHandle.value().instance.nodeArray[jointIdx];
-        const glm::mat4& bindMatrix = m_internalHandle.value().shared->inverseBindMatrices[i];
+        const SceneComponent& joint = m_instance.value().nodeArray[jointIdx];
+        const glm::mat4& bindMatrix = m_asset.value().inverseBindMatrices[i];
 
         jointMatrices.push_back(joint.getGlobalTransform().getModelMatrix() * bindMatrix);
     }
-    m_internalHandle.value().instance.jointMatricesUBO.updateData(
+    m_instance.value().jointMatricesUBO.updateData(
         jointMatrices.data(), jointMatrices.size() * sizeof(glm::mat4)
     );
-    return &m_internalHandle.value().instance.jointMatricesUBO;
+    return &m_instance.value().jointMatricesUBO;
 }
 
 Transform SkeletalMesh::getRenderableTransform() const {
-    if (!m_internalHandle.isReady()) return Renderable::getRenderableTransform();
+    if (!isReady()) return Renderable::getRenderableTransform();
 
-    int animatedNodeIndex = m_internalHandle.value().instance.animatedMeshNodeIndex;
-    const SceneComponent& animatedNode = m_internalHandle.value().instance.nodeArray[animatedNodeIndex];
+    int animatedNodeIndex = m_asset.value().animatedMeshNodeIndex;
+    const SceneComponent& animatedNode = m_instance.value().nodeArray[animatedNodeIndex];
     return animatedNode.getGlobalTransform() * getGlobalTransform();
 }
 
 BoundingBox SkeletalMesh::getBoundingBox() const {
-    if (!m_internalHandle.isReady()) return Renderable::getBoundingBox();
+    if (!m_asset.isReady()) return Renderable::getBoundingBox();
 
-    return m_internalHandle.value().instance.bounds;
+    return m_asset.value().bounds;
 }
 
 void SkeletalMesh::update(float deltaTime) {

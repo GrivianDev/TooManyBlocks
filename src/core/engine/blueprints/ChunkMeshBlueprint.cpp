@@ -3,12 +3,12 @@
 #include <array>
 #include <cfloat>
 #include <cstring>
+#include <memory>
 #include <sstream>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "AppConstants.h"
 #include "Logger.h"
 #include "compatability/Compatability.h"
 #include "datatypes/BlockTypes.h"
@@ -345,7 +345,7 @@ CPURenderData<CompactChunkVertex> generateMeshForChunkGreedy(const Block* blocks
     return {"Chunk", std::move(vertexBuffer), std::move(indexBuffer), bounds};
 }
 
-std::shared_ptr<StaticMesh::Shared> createSharedState(const CPURenderData<CompactChunkVertex>& cpuStaticMesh) {
+StaticMesh::Asset createStaticMeshAsset(const CPURenderData<CompactChunkVertex>& cpuStaticMesh) {
     VertexBuffer vbo = VertexBuffer::create(
         cpuStaticMesh.vertices.data(), cpuStaticMesh.vertices.size() * sizeof(CompactChunkVertex)
     );
@@ -364,13 +364,9 @@ std::shared_ptr<StaticMesh::Shared> createSharedState(const CPURenderData<Compac
         std::unique_ptr<RenderData> renderData = std::make_unique<IndexedRenderData>(
             std::move(vao), std::move(vbo), std::move(ibo)
         );
-        return std::make_shared<StaticMesh::Shared>(StaticMesh::Shared{std::move(renderData)});
+        return StaticMesh::Asset{std::move(renderData), cpuStaticMesh.bounds};
     } else {
         std::unique_ptr<RenderData> renderData = std::make_unique<NonIndexedRenderData>(std::move(vao), std::move(vbo));
-        return std::make_shared<StaticMesh::Shared>(StaticMesh::Shared{std::move(renderData)});
+        return StaticMesh::Asset{std::move(renderData), cpuStaticMesh.bounds};
     }
-}
-
-StaticMesh::Instance createInstanceState(const CPURenderData<CompactChunkVertex>& cpuStaticMesh) {
-    return {cpuStaticMesh.bounds};
 }

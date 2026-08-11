@@ -8,7 +8,7 @@
 #include "engine/rendering/GLUtils.h"
 #include "engine/rendering/Renderer.h"
 #include "engine/rendering/lowlevelapi/FrameBuffer.h"
-#include "engine/resource/loaders/ShaderLoader.h"
+#include "engine/assets/loaders/ShaderLoader.h"
 
 void ResolverRenderpass::prepare(
     RenderContext& context,
