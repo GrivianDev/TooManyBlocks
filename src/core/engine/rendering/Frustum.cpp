@@ -94,8 +94,25 @@ void cullObjectsOutOfView(
     for (Renderable* mesh : meshes) {
         const BoundingBox bounds = mesh->getBoundingBox();
         if (!bounds.isInvalid() || bounds.isNotCullable()) {
-            glm::vec3 pos = mesh->getGlobalTransform().getPosition();
-            if (frustum.isBoxInside(bounds.min + pos, bounds.max + pos)) {
+            // TODO This is a quickfix for correct culling, maybe make this nicer
+            Transform transform = mesh->getGlobalTransform();
+
+            const glm::vec3 localCenter = (bounds.min + bounds.max) * 0.5f;
+            const glm::vec3 localExtents = (bounds.max - bounds.min) * 0.5f;
+
+            const glm::vec3 worldCenter = transform.getPosition() +
+                                          transform.getRotationQuat() * (localCenter * transform.getScale());
+
+            const glm::mat3 rotation = glm::mat3_cast(transform.getRotationQuat());
+
+            const glm::mat3 absRotation(glm::abs(rotation[0]), glm::abs(rotation[1]), glm::abs(rotation[2]));
+
+            const glm::vec3 worldExtents = absRotation * (localExtents * transform.getScale());
+
+            const glm::vec3 worldMin = worldCenter - worldExtents;
+            const glm::vec3 worldMax = worldCenter + worldExtents;
+
+            if (frustum.isBoxInside(worldMin, worldMax)) {
                 outputBuffer.push_back(mesh);
             }
         }
