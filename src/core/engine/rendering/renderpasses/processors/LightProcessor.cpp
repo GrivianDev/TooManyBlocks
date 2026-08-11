@@ -324,6 +324,7 @@ void LightProcessor::prepareShadowData(
 
         if (light->getType() == LightType::Directional) {
             if (!directionalLight && light->castsShadows()) directionalLight = static_cast<DirectionalLight*>(light);
+            continue;
         } else if (!cameraFrustum.isSphereInside(light->getGlobalTransform().getPosition(), light->getRange())) {
             continue;
         }
@@ -406,7 +407,7 @@ void LightProcessor::prepareShadowData(
         totalCost -= currentCost - nextCost;
     }
 
-    if (directionalLight) {
+    if (directionalLight) { // Dodge scoring / adjusting logic for directional lights
         scoredLights.insert(
             scoredLights.begin(), {directionalLight, 1.0f, 1.0f, directionalLightCascadeResolution, true}
         );
