@@ -4,6 +4,7 @@
 
 #include "Application.h"
 #include "engine/GameInstance.h"
+#include "engine/rendering/Renderer.h"
 #include "platform/window/WindowManager.h"
 
 const char* qualityNames[] = {"Low", "Medium", "High"};
@@ -108,6 +109,11 @@ namespace UI {
                     ImGui::Combo(
                         "Particle Quality", &settings.graphics.particleQuality, qualityNames, IM_ARRAYSIZE(qualityNames)
                     );
+
+                    SettingsSection("Debug");
+                    if (ImGui::Checkbox("Polygon Rendermode", &settings.graphics.debugPolygonModeEnabled)) {
+                        context->renderer->setDebugPolygonModeEnabled(settings.graphics.debugPolygonModeEnabled);
+                    }
 
                     ImGui::EndTabItem();
                 }

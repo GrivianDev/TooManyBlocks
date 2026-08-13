@@ -102,6 +102,7 @@ void Application::init() {
     context->inputManager->setup();
 
     context->renderer->init();
+    context->renderer->setDebugPolygonModeEnabled(context->instance->gameSettings.graphics.debugPolygonModeEnabled);
 
     UI::init();
 

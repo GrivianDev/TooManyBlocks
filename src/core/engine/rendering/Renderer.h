@@ -96,7 +96,7 @@ private:
 
     RenderContext m_currentRenderContext;
     RenderResources m_renderResources;
-    std::vector<std::unique_ptr<Renderpass>> renderpasses;
+    std::vector<std::unique_ptr<Renderpass>> m_renderpasses;
 
     int m_lastLightCount;
     int m_lastObjectCount;
@@ -116,6 +116,8 @@ public:
     void drawFullscreenQuad();
 
     void fillDebugReport(DebugReport& report) const;
+
+    void setDebugPolygonModeEnabled(bool enabled); 
 };
 
 #endif

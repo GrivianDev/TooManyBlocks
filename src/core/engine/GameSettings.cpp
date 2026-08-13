@@ -37,6 +37,8 @@ static Json::JsonValue toJson(const GraphicsSettings& settings) {
     json["windowMode"] = settings.windowMode;
     json["vsync"] = settings.vsync;
 
+    json["maxFramerate"] = settings.maxFramerate;
+
     json["renderDistance"] = settings.renderDistance;
     json["simulationDistance"] = settings.simulationDistance;
 
@@ -52,7 +54,7 @@ static Json::JsonValue toJson(const GraphicsSettings& settings) {
     json["textureQuality"] = settings.textureQuality;
     json["particleQuality"] = settings.particleQuality;
 
-    json["maxFramerate"] = settings.maxFramerate;
+    json["debugPolygonModeEnabled"] = settings.debugPolygonModeEnabled;
 
     return json;
 }
@@ -78,6 +80,8 @@ static void fromJson(GraphicsSettings& settings, const Json::JsonValue& value) {
     readSetting(json, "windowMode", settings.windowMode);
     readSetting(json, "vsync", settings.vsync);
 
+    readSetting(json, "maxFramerate", settings.maxFramerate);
+
     readSetting(json, "renderDistance", settings.renderDistance);
     readSetting(json, "simulationDistance", settings.simulationDistance);
 
@@ -93,7 +97,7 @@ static void fromJson(GraphicsSettings& settings, const Json::JsonValue& value) {
     readSetting(json, "textureQuality", settings.textureQuality);
     readSetting(json, "particleQuality", settings.particleQuality);
 
-    readSetting(json, "maxFramerate", settings.maxFramerate);
+    readSetting(json, "debugPolygonModeEnabled", settings.debugPolygonModeEnabled);
 }
 
 static void fromJson(AudioSettings& settings, const Json::JsonValue& value) {

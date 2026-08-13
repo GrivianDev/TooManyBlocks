@@ -72,13 +72,13 @@ void Renderer::init() {
     m_currentRenderContext.lInfo.lightBuff = lightProcessor.getLightUniformBuffer();
     m_currentRenderContext.lInfo.shadowMapBuff = lightProcessor.getShadowMapUniformBuffer();
 
-    renderpasses.push_back(std::move(transformFeebackpass));
-    renderpasses.push_back(std::move(shadowpass));
-    renderpasses.push_back(std::move(ssaoRenderpass));
-    renderpasses.push_back(std::move(opaqueRenderpass));
-    renderpasses.push_back(std::move(transparencyRenderpass));
-    renderpasses.push_back(std::move(resolverRenderpass));
-    renderpasses.push_back(std::move(fxaaRenderpass));
+    m_renderpasses.push_back(std::move(transformFeebackpass));
+    m_renderpasses.push_back(std::move(shadowpass));
+    m_renderpasses.push_back(std::move(ssaoRenderpass));
+    m_renderpasses.push_back(std::move(opaqueRenderpass));
+    m_renderpasses.push_back(std::move(transparencyRenderpass));
+    m_renderpasses.push_back(std::move(resolverRenderpass));
+    m_renderpasses.push_back(std::move(fxaaRenderpass));
 
     m_renderResources.lightsToRender = &m_lightsToRender;
     m_renderResources.objectsToRender = &m_objectsToRender;
@@ -118,7 +118,7 @@ void Renderer::render(const ApplicationContext& context) {
     );
 
     auto start = std::chrono::high_resolution_clock::now();
-    for (const std::unique_ptr<Renderpass>& pass : renderpasses) {
+    for (const std::unique_ptr<Renderpass>& pass : m_renderpasses) {
         pass->run(m_currentRenderContext, m_renderResources, context);
     }
     auto end = std::chrono::high_resolution_clock::now();
@@ -141,8 +141,16 @@ void Renderer::fillDebugReport(DebugReport& report) const {
     report.addTimeMs("Total processing time", m_lastRenderTimeMs);
     report.addCounter("Submitted objects", m_lastObjectCount);
     report.addCounter("Submitted lights", m_lastLightCount);
-    for (const std::unique_ptr<Renderpass>& pass : renderpasses) {
+    for (const std::unique_ptr<Renderpass>& pass : m_renderpasses) {
         pass->putDebugInfo(report);
     }
     report.endGroup();
+}
+
+void Renderer::setDebugPolygonModeEnabled(bool enabled) {
+    for (const std::unique_ptr<Renderpass>& pass : m_renderpasses) {
+        if (OpaqueRenderpass* passPtr = dynamic_cast<OpaqueRenderpass*>(pass.get())) {
+            passPtr->setDebugPolygonModeEnabled(enabled);
+        }
+    }
 }

@@ -13,6 +13,9 @@ struct GraphicsSettings {
     int windowMode = 0;
     bool vsync = true;
 
+    // Performance
+    int maxFramerate = 0;  // 0 = unlimited
+
     // Rendering
     int renderDistance = 16;
     int simulationDistance = 12;
@@ -30,8 +33,8 @@ struct GraphicsSettings {
     int textureQuality = 2;
     int particleQuality = 2;
 
-    // Performance
-    int maxFramerate = 0;  // 0 = unlimited
+    // Debug
+    bool debugPolygonModeEnabled = false;
 };
 
 struct AudioSettings {
