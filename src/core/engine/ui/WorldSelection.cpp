@@ -182,7 +182,7 @@ namespace UI {
                     context->instance->initializeWorld(world);
                     // Capture and hide the mouse cursor
                     context->windowManager->setCursorMode(CursorMode::HiddenAndCaptured);
-                    navigateToWidget("GameOverlay");
+                    navigateTo("GameOverlay");
                 } catch (const std::exception& e) {
                     context->instance->deinitWorld();
                     setError(e.what());
@@ -224,7 +224,7 @@ namespace UI {
             ImGui::SameLine();
 
             if (ImGui::Button("Back", ImVec2(350.0f, 45.0f))) {
-                navigateToWidget("MainMenu");
+                navigateBack();
             }
 
             if (ImGui::BeginPopupModal(

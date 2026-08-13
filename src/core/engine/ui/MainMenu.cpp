@@ -28,15 +28,15 @@ namespace UI {
             float centerX = (io.DisplaySize.x - buttonWidth) / 2.0f;  // Center X position
             ImGui::SetCursorPos({centerX, startY});
             if (ImGui::Button("Singleplayer", ImVec2(buttonWidth, buttonHeight))) {
-                navigateToWidget("WorldSelection");
+                navigateTo("WorldSelection");
             }
             ImGui::SetCursorPos({centerX, startY + buttonHeight + padding});
             if (ImGui::Button("Settings", ImVec2(buttonWidth, buttonHeight))) {
-                navigateToWidget("SettingsMenu");
+                navigateTo("SettingsMenu");
             }
             ImGui::SetCursorPos({centerX, startY + 2 * (buttonHeight + padding)});
             if (ImGui::Button("About", ImVec2(buttonWidth, buttonHeight))) {
-                navigateToWidget("AboutScreen");
+                navigateTo("AboutScreen");
             }
             ImGui::SetCursorPos({centerX, startY + 3 * (buttonHeight + padding)});
             if (ImGui::Button("Quit", ImVec2(buttonWidth, buttonHeight))) {

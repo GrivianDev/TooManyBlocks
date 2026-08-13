@@ -196,7 +196,7 @@ namespace UI {
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + centerX);
 
             if (ImGui::Button("Back", ImVec2(buttonWidth, buttonHeight))) {
-                navigateToWidget("MainMenu");
+                navigateBack();
             }
         }
 

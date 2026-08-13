@@ -77,7 +77,7 @@ namespace UI {
             float centerX = (io.DisplaySize.x - buttonWidth) * 0.5f;
             ImGui::SetCursorPosX(centerX);
             if (ImGui::Button("Back", ImVec2(buttonWidth, buttonHeight))) {
-                navigateToWidget("MainMenu");
+                navigateBack();
             }
         }
         ImGui::End();

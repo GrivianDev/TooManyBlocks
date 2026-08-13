@@ -39,7 +39,13 @@ namespace UI {
         _manager->registerWidget(widgetName, []() { return new T; });
     }
 
-    inline bool navigateToWidget(const std::string& widgetName) { return _manager->navigateToWidget(widgetName); }
+    inline bool navigateTo(const std::string& widgetName) { return _manager->navigateTo(widgetName); }
+
+    inline bool navigateToReplacement(const std::string& widgetName) { return _manager->navigateToReplacement(widgetName); }
+
+    inline bool navigateBackTo(const std::string& widgetName) { return _manager->navigateBackTo(widgetName); }
+
+    inline bool navigateBack() { return _manager->navigateBack(); }
 }  // namespace UI
 
 #endif

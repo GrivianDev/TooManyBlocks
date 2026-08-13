@@ -111,7 +111,7 @@ void Application::init() {
     UI::registerWidget<UI::WorldSelection>("WorldSelection");
     UI::registerWidget<UI::PauseMenu>("PauseMenu");
     UI::registerWidget<UI::AboutScreen>("AboutScreen");
-    UI::navigateToWidget("MainMenu");
+    UI::navigateTo("MainMenu");
 
     // Set initial output device
     if (context->audioEngine->loadDevices()) {

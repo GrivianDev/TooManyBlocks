@@ -36,12 +36,15 @@ namespace UI {
                 context->inputManager->mouseAdapter()->attach(static_cast<PlayerController*>(context->instance->m_playerController));
                 context->windowManager->setCursorMode(CursorMode::HiddenAndCaptured);
                 context->instance->gameState.gamePaused = false;
-                navigateToWidget("GameOverlay");
+                navigateBack();
+            }
+            if (ImGui::Button("Settings", ImVec2(-1, 0))) {
+                navigateTo("SettingsMenu");
             }
             if (ImGui::Button("Exit", ImVec2(-1, 0))) {
                 context->instance->gameState.gamePaused = false;
                 context->instance->deinitWorld();
-                navigateToWidget("MainMenu");
+                navigateBackTo("MainMenu");
             }
         }
         ImGui::End();

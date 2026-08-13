@@ -64,7 +64,7 @@ void UI::GameOverlay::render() {
                 static_cast<PlayerController*>(context->instance->m_player->getController())
             );
             context->windowManager->setCursorMode(CursorMode::Normal);
-            navigateToWidget("PauseMenu");
+            navigateTo("PauseMenu");
         }
     }
     ImGui::End();

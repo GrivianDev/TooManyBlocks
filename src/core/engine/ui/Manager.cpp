@@ -47,6 +47,9 @@ void UI::Manager::renderFrame() {
         }
         m_currentWidget = m_nextWidget;
         m_nextWidget = nullptr;
+
+        m_currentWidgetName = m_nextWidgetName;
+        m_nextWidgetName.clear();
     }
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -65,16 +68,57 @@ void UI::Manager::registerWidget(const std::string& widgetName, std::function<Wi
     m_widgetFactory.emplace(widgetName, createFn);
 }
 
-bool UI::Manager::navigateToWidget(const std::string& widgetName) {
+bool UI::Manager::navigateTo(const std::string& widgetName) {
     auto it = m_widgetFactory.find(widgetName);
-    if (it != m_widgetFactory.end()) {
-        // Set create as next window
-        if (!m_nextWidget) {
-            m_nextWidget = it->second();
-            return true;
-        }
+    if (it == m_widgetFactory.end() || m_nextWidget) return false;
+
+    if (!m_currentWidgetName.empty()) {
+        m_navigationStack.push_back(m_currentWidgetName);
     }
-    return false;
+
+    m_nextWidget = it->second();
+    m_nextWidgetName = widgetName;
+    return true;
 }
+
+bool UI::Manager::navigateToReplacement(const std::string& widgetName) {
+    auto it = m_widgetFactory.find(widgetName);
+    if (it == m_widgetFactory.end() || m_nextWidget) return false;
+
+    m_nextWidget = it->second();
+    m_nextWidgetName = widgetName;
+    return true;
+}
+
+bool UI::Manager::navigateBackTo(const std::string& widgetName) {
+    auto it = std::find(m_navigationStack.rbegin(), m_navigationStack.rend(), widgetName);
+    if (it == m_navigationStack.rend() || m_nextWidget) return false;
+
+    auto stackIt = std::prev(it.base());
+    m_navigationStack.erase(stackIt, m_navigationStack.end());
+
+    auto widgetFactoryIt = m_widgetFactory.find(widgetName);
+    if (widgetFactoryIt == m_widgetFactory.end()) return false;
+
+    m_nextWidget = widgetFactoryIt->second();
+    m_nextWidgetName = widgetName;
+    return true;
+}
+
+bool UI::Manager::navigateBack() {
+    if (m_navigationStack.empty() || m_nextWidget) return false;
+
+    const std::string previousWidget = std::move(m_navigationStack.back());
+    m_navigationStack.pop_back();
+
+    auto it = m_widgetFactory.find(previousWidget);
+    if (it == m_widgetFactory.end()) return false;
+
+    m_nextWidget = it->second();
+    m_nextWidgetName = previousWidget;
+    return true;
+}
+
+void UI::Manager::clearNavigationHistory() { m_navigationStack.clear(); }
 
 FontData UI::Manager::getFont(float requestedSize) { return m_fontPool.getFont(requestedSize); }
