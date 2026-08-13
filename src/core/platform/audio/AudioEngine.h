@@ -13,7 +13,7 @@ struct AudioInstance {
 };
 
 struct AudioDevice {
-    unsigned int id;
+    unsigned int id; // TODO replace by stable identifier instead of index (can change when unplugging)
     std::string name;
     bool isDefault;
 };

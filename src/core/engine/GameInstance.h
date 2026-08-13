@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Updatable.h"
+#include "engine/GameSettings.h"
 #include "engine/entity/Player.h"
 #include "engine/env/World.h"
 #include "engine/env/lights/Light.h"
@@ -16,6 +17,7 @@
 #include "engine/rendering/lowlevelapi/Shader.h"
 #include "engine/rendering/lowlevelapi/Texture.h"
 #include "engine/rendering/particles/ParticleSystem.h"
+#include "platform/audio/AudioEngine.h"
 
 struct GameState {
     float elapsedGameTime = 0.0f;
@@ -27,8 +29,10 @@ struct GameState {
 class GameInstance : public Updatable {
 public:
     GameState gameState;
+    GameSettings gameSettings;
     Controller* m_playerController;
     Player* m_player;
+    AudioInstance m_worldMusic;
     World* m_world;
     std::shared_ptr<Line> m_line;
     std::shared_ptr<SkeletalMesh> m_skeletalMesh;

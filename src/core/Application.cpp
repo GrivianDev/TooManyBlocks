@@ -12,6 +12,7 @@
 #include "engine/ui/GameOverlay.h"
 #include "engine/ui/MainMenu.h"
 #include "engine/ui/PauseMenu.h"
+#include "engine/ui/SettingsMenu.h"
 #include "engine/ui/Ui.h"
 #include "engine/ui/WorldSelection.h"
 #include "foundation/threading/Future.h"
@@ -105,11 +106,47 @@ void Application::init() {
     UI::init();
 
     UI::registerWidget<UI::MainMenu>("MainMenu");
+    UI::registerWidget<UI::SettingsMenu>("SettingsMenu");
     UI::registerWidget<UI::GameOverlay>("GameOverlay");
     UI::registerWidget<UI::WorldSelection>("WorldSelection");
     UI::registerWidget<UI::PauseMenu>("PauseMenu");
     UI::registerWidget<UI::AboutScreen>("AboutScreen");
     UI::navigateToWidget("MainMenu");
+
+    // Set initial output device
+    if (context->audioEngine->loadDevices()) {
+        int selectedDevice = -1;
+
+        for (const AudioDevice& device : context->audioEngine->getOutputDevices()) {
+            if (device.name == context->instance->gameSettings.audio.outputDevice) {
+                selectedDevice = device.id;
+                break;
+            }
+        }
+
+        if (selectedDevice >= 0) {
+            context->audioEngine->setOutputDevice(selectedDevice);
+        } else {
+            // Fall back to the default.
+            for (const AudioDevice& device : context->audioEngine->getOutputDevices()) {
+                if (device.isDefault) {
+                    context->instance->gameSettings.audio.outputDevice = device.name;
+                    context->audioEngine->setOutputDevice(device.id);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Setup audio bus system
+    context->audioEngine->setBusParent(MUSIC_BUS, MASTER_BUS);
+    context->audioEngine->setBusParent(EFFECT_BUS, MASTER_BUS);
+    context->audioEngine->setBusParent(AMBIENT_BUS, MASTER_BUS);
+
+    context->audioEngine->setBusVolume(MASTER_BUS, context->instance->gameSettings.audio.masterVolume);
+    context->audioEngine->setBusVolume(MUSIC_BUS, context->instance->gameSettings.audio.musicVolume);
+    context->audioEngine->setBusVolume(EFFECT_BUS, context->instance->gameSettings.audio.effectVolume);
+    context->audioEngine->setBusVolume(AMBIENT_BUS, context->instance->gameSettings.audio.ambientVolume);
 }
 
 void Application::execute() {

@@ -23,7 +23,7 @@ namespace UI {
             float buttonWidth = 400.0f;
             float buttonHeight = 75.0f;
             float padding = 10.0f;
-            float totalHeight = (3 * buttonHeight) + (2 * padding);   // Total height of all buttons + padding
+            float totalHeight = (4 * buttonHeight) + (3 * padding);   // Total height of all buttons + padding
             float startY = (io.DisplaySize.y - totalHeight) / 2.0f;   // Center Y position
             float centerX = (io.DisplaySize.x - buttonWidth) / 2.0f;  // Center X position
             ImGui::SetCursorPos({centerX, startY});
@@ -31,10 +31,14 @@ namespace UI {
                 navigateToWidget("WorldSelection");
             }
             ImGui::SetCursorPos({centerX, startY + buttonHeight + padding});
+            if (ImGui::Button("Settings", ImVec2(buttonWidth, buttonHeight))) {
+                navigateToWidget("SettingsMenu");
+            }
+            ImGui::SetCursorPos({centerX, startY + 2 * (buttonHeight + padding)});
             if (ImGui::Button("About", ImVec2(buttonWidth, buttonHeight))) {
                 navigateToWidget("AboutScreen");
             }
-            ImGui::SetCursorPos({centerX, startY + 2 * (buttonHeight + padding)});
+            ImGui::SetCursorPos({centerX, startY + 3 * (buttonHeight + padding)});
             if (ImGui::Button("Quit", ImVec2(buttonWidth, buttonHeight))) {
                 context->instance->gameState.quitGame = true;
             }

@@ -26,9 +26,14 @@
 #include "foundation/threading/Future.h"
 #include "rendering/StaticMesh.h"
 
-GameInstance::GameInstance() : m_playerController(nullptr), m_player(nullptr), m_world(nullptr) {}
+GameInstance::GameInstance() : m_playerController(nullptr), m_player(nullptr), m_world(nullptr) {
+    loadSettings(gameSettings);
+}
 
-GameInstance::~GameInstance() { deinitWorld(); }
+GameInstance::~GameInstance() {
+    saveSettings(gameSettings);
+    deinitWorld();
+}
 
 void GameInstance::initializeWorld(World* newWorld) {
     if (m_world == nullptr) {
@@ -41,8 +46,13 @@ void GameInstance::initializeWorld(World* newWorld) {
         m_playerController = new PlayerController;
         m_player = new Player;
         m_world = newWorld;
-        m_world->setChunkLoadingDistance(3);
+        m_world->setChunkLoadingDistance(gameSettings.graphics.renderDistance);
         m_playerController->possess(m_player);
+
+        AudioEngine* audio = Application::getContext()->audioEngine;
+        m_worldMusic = audio->playStreamed("res/audio/music/Deep Relaxation.mp3");
+        audio->setBus(m_worldMusic, MUSIC_BUS);
+        audio->setLooping(m_worldMusic, true);
 
         AssetManager* assets = Application::getContext()->assets;
 
@@ -157,6 +167,7 @@ void GameInstance::deinitWorld() {
     }
     if (m_world) {
         try {
+            Application::getContext()->audioEngine->stop(m_worldMusic);
             m_world->syncedSaveChunks();
         } catch (const std::exception& e) {
             lgr::lout.error(e.what());
