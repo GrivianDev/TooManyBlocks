@@ -1,7 +1,7 @@
 #version 430 core
 
 in vec2 screenUV;
-out vec4 outColor;
+out vec3 outColor;
 
 uniform sampler2D u_inputTexture;
 uniform vec2 u_texelSize; // 1.0 / resolution
@@ -54,5 +54,5 @@ void main() {
     float lumaB = dot(rgbB, luma);
 
     // Choose between sharper or smoother result
-    outColor = (lumaB < lumaMin || lumaB > lumaMax) ? vec4(rgbA, 1.0) : vec4(rgbB, 1.0);
+    outColor = (lumaB < lumaMin || lumaB > lumaMax) ? rgbA : rgbB;
 }

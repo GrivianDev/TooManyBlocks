@@ -8,6 +8,8 @@
 #include "engine/assets/AssetManager.h"
 #include "engine/assets/AssetSetup.h"
 #include "engine/rendering/Renderer.h"
+#include "engine/rendering/renderpasses/FXAARenderpass.h"
+#include "engine/rendering/renderpasses/SSAORenderpass.h"
 #include "engine/ui/AboutScreen.h"
 #include "engine/ui/GameOverlay.h"
 #include "engine/ui/MainMenu.h"
@@ -103,6 +105,8 @@ void Application::init() {
 
     context->renderer->init();
     context->renderer->setDebugPolygonModeEnabled(context->instance->gameSettings.graphics.debugPolygonModeEnabled);
+    context->renderer->getPass<SSAORenderpass>()->setEnabled(context->instance->gameSettings.graphics.ambientOcclusion);
+    context->renderer->getPass<FXAARenderpass>()->setEnabled(context->instance->gameSettings.graphics.fxaa);
 
     UI::init();
 
@@ -157,6 +161,7 @@ void Application::execute() {
         float statUpdateAccumulator = 0.0f;
 
         while (!context->windowManager->shouldWindowClose() && !context->instance->gameState.quitGame) {
+            context->timer->startFrame();
             context->timer->tick();
 
             statUpdateAccumulator += context->timer->deltaSeconds();
@@ -186,6 +191,7 @@ void Application::execute() {
             context->windowManager->swapBuffers();
             // Poll for and process events, including set callbacks
             context->windowManager->pollEvents();
+            context->timer->limitFPS(static_cast<double>(context->instance->gameSettings.graphics.maxFramerate));
         }
     } catch (const std::exception& e) {
         lgr::lout.error("Error during game loop: " + std::string(e.what()));

@@ -1,15 +1,13 @@
-#ifndef TOOMANYBLOCKS_FXAARENDERPASS_H
-#define TOOMANYBLOCKS_FXAARENDERPASS_H
+#ifndef TOOMANYBLOCKS_FINALOUTPUTPASS_H
+#define TOOMANYBLOCKS_FINALOUTPUTPASS_H
 
-#include "engine/rendering/lowlevelapi/FrameBuffer.h"
 #include "engine/rendering/lowlevelapi/Shader.h"
 #include "engine/rendering/renderpasses/Renderpass.h"
 
-class FXAARenderpass : public Renderpass {
+class FinalOutputpass : public Renderpass {
 private:
-    FrameBuffer m_fxaaBuffer;
-    Shader m_fxaaShader;
-
+    Shader m_outputShader;
+    
 protected:
     virtual void prepare(
         RenderContext& context,
@@ -28,14 +26,12 @@ protected:
     ) override;
 
 public:
-    FXAARenderpass();
-    virtual ~FXAARenderpass() = default;
+    FinalOutputpass();
+    virtual ~FinalOutputpass() = default;
 
     virtual const char* name() override;
 
     virtual void putDebugInfo(DebugReport& report) override;
-
-    void createBuffers(RenderContext& context);
 };
 
 #endif

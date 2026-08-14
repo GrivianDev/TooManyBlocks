@@ -10,6 +10,7 @@
 #include "engine/rendering/Camera.h"
 #include "engine/rendering/GLUtils.h"
 #include "engine/rendering/renderpasses/FXAARenderpass.h"
+#include "engine/rendering/renderpasses/FinalOutputpass.h"
 #include "engine/rendering/renderpasses/OpaqueRenderpass.h"
 #include "engine/rendering/renderpasses/ResolverRenderpass.h"
 #include "engine/rendering/renderpasses/SSAORenderpass.h"
@@ -65,6 +66,7 @@ void Renderer::init() {
     std::unique_ptr<TransparencyRenderpass> transparencyRenderpass = std::make_unique<TransparencyRenderpass>();
     std::unique_ptr<ResolverRenderpass> resolverRenderpass = std::make_unique<ResolverRenderpass>();
     std::unique_ptr<FXAARenderpass> fxaaRenderpass = std::make_unique<FXAARenderpass>();
+    std::unique_ptr<FinalOutputpass> outputPass = std::make_unique<FinalOutputpass>();
 
     LightProcessor& lightProcessor = shadowpass->getLightProcessor();
     m_renderResources.priodLightsBuffer.reserve(lightProcessor.getTotalSupportedLights());
@@ -79,6 +81,7 @@ void Renderer::init() {
     m_renderpasses.push_back(std::move(transparencyRenderpass));
     m_renderpasses.push_back(std::move(resolverRenderpass));
     m_renderpasses.push_back(std::move(fxaaRenderpass));
+    m_renderpasses.push_back(std::move(outputPass));
 
     m_renderResources.lightsToRender = &m_lightsToRender;
     m_renderResources.objectsToRender = &m_objectsToRender;
@@ -110,6 +113,9 @@ void Renderer::render(const ApplicationContext& context) {
     m_currentRenderContext.deltaTime = context.instance->gameState.deltaTime;
     m_currentRenderContext.elapsedTime = context.instance->gameState.elapsedGameTime;
 
+    m_currentRenderContext.ssaoInfo.enabled = getPass<SSAORenderpass>()->isEnabled();
+    m_currentRenderContext.fxaaInfo.enabled = getPass<FXAARenderpass>()->isEnabled();
+
     m_renderResources.culledObjectsBuffer.reserve(m_objectsToRender.size());
 
     // Update camera aspect ratio just in case it changed via resize of screen.
@@ -119,6 +125,7 @@ void Renderer::render(const ApplicationContext& context) {
 
     auto start = std::chrono::high_resolution_clock::now();
     for (const std::unique_ptr<Renderpass>& pass : m_renderpasses) {
+        if (!pass->isEnabled()) continue;
         pass->run(m_currentRenderContext, m_renderResources, context);
     }
     auto end = std::chrono::high_resolution_clock::now();

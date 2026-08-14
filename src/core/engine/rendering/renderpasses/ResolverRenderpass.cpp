@@ -53,9 +53,7 @@ void ResolverRenderpass::cleanup(
 }
 
 ResolverRenderpass::ResolverRenderpass() {
-    ApplicationContext* context = Application::getContext();
     CPUShader cpuShader = loadShaderFromFile(Res::Shader::RESOLVER, ShaderLoadOption::VertexAndFragment);
-
     m_resolverShader = Shader::create(cpuShader.vertexShader, cpuShader.fragmentShader);
     m_resolverBuffer = FrameBuffer::create();
 }

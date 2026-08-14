@@ -7,6 +7,7 @@
 namespace UI {
     class SettingsMenu : public Widget {
     private:
+        bool m_unlimitedFrameRate;
         std::vector<AudioDevice> m_outputDevices;
 
     public:

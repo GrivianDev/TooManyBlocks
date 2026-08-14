@@ -41,6 +41,7 @@ struct ParticleInfo {
 };
 
 struct SSAOInfo {
+    bool enabled;
     const Texture* output;
 };
 
@@ -50,6 +51,11 @@ struct OpaqueInfo {
 };
 
 struct ResolverInfo {
+    const Texture* output;
+};
+
+struct FXAAInfo {
+    bool enabled;
     const Texture* output;
 };
 
@@ -76,6 +82,7 @@ struct RenderContext {
     OpaqueInfo opaqueInfo;
     TransparencyInfo transparencyInfo;
     ResolverInfo resolverInfo;
+    FXAAInfo fxaaInfo;
 };
 
 struct RenderResources {
@@ -117,7 +124,16 @@ public:
 
     void fillDebugReport(DebugReport& report) const;
 
-    void setDebugPolygonModeEnabled(bool enabled); 
+    void setDebugPolygonModeEnabled(bool enabled);
+
+    template <typename T>
+    T* getPass() {
+        for (const std::unique_ptr<Renderpass>& pass : m_renderpasses) {
+            if (T* typedPass = dynamic_cast<T*>(pass.get())) return typedPass;
+        }
+
+        return nullptr;
+    }
 };
 
 #endif

@@ -27,6 +27,7 @@ struct GraphicsSettings {
     bool particles = true;
     bool clouds = true;
     bool ambientOcclusion = true;
+    bool fxaa = true;
 
     // Quality
     int shadowQuality = 2;

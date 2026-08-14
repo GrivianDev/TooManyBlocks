@@ -49,6 +49,7 @@ static Json::JsonValue toJson(const GraphicsSettings& settings) {
     json["particles"] = settings.particles;
     json["clouds"] = settings.clouds;
     json["ambientOcclusion"] = settings.ambientOcclusion;
+    json["fxaa"] = settings.fxaa;
 
     json["shadowQuality"] = settings.shadowQuality;
     json["textureQuality"] = settings.textureQuality;
@@ -92,6 +93,7 @@ static void fromJson(GraphicsSettings& settings, const Json::JsonValue& value) {
     readSetting(json, "particles", settings.particles);
     readSetting(json, "clouds", settings.clouds);
     readSetting(json, "ambientOcclusion", settings.ambientOcclusion);
+    readSetting(json, "fxaa", settings.fxaa);
 
     readSetting(json, "shadowQuality", settings.shadowQuality);
     readSetting(json, "textureQuality", settings.textureQuality);

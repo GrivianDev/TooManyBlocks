@@ -57,6 +57,7 @@ uniform vec3 u_cameraPosition;
 
 uniform int u_lightCount;
 
+uniform bool u_ssaoEnabled;
 uniform sampler2D u_ssaoTexture;
 uniform uvec2 u_screenResolution;
 
@@ -234,8 +235,10 @@ void main() {
     }
 
     vec2 screenUV = gl_FragCoord.xy / vec2(u_screenResolution);
-    float occlusion = texture(u_ssaoTexture, screenUV).r;  // SSAO value [0, 1]
+    float occlusion = 1.0f;
+    if (u_ssaoEnabled) {
+        occlusion = texture(u_ssaoTexture, screenUV).r;  // SSAO value [0, 1]
+    }
     color = ((0.15 * color) + (0.85 * clamp(lightContrib * color, 0.0, 1.0))) * occlusion;
-
     outColor = vec4(color * fade, 1.0);
 }

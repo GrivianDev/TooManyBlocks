@@ -5,6 +5,8 @@
 #include "Application.h"
 #include "engine/GameInstance.h"
 #include "engine/rendering/Renderer.h"
+#include "engine/rendering/renderpasses/FXAARenderpass.h"
+#include "engine/rendering/renderpasses/SSAORenderpass.h"
 #include "platform/window/WindowManager.h"
 
 const char* qualityNames[] = {"Low", "Medium", "High"};
@@ -28,6 +30,8 @@ namespace UI {
         AudioEngine* audio = Application::getContext()->audioEngine;
         audio->loadDevices();
         m_outputDevices = audio->getOutputDevices();
+
+        m_unlimitedFrameRate = Application::getContext()->instance->gameSettings.graphics.maxFramerate == 0;
     }
 
     void SettingsMenu::render() {
@@ -67,7 +71,13 @@ namespace UI {
                         context->windowManager->enableVSync(settings.graphics.vsync);
                     }
 
-                    ImGui::SliderInt("Max Framerate", &settings.graphics.maxFramerate, 30, 300);
+                    if (ImGui::Checkbox("Unlimited FPS", &m_unlimitedFrameRate)) {
+                        settings.graphics.maxFramerate = m_unlimitedFrameRate ? 0 : 90;
+                    }
+
+                    if (!m_unlimitedFrameRate) {
+                        ImGui::SliderInt("Max Framerate", &settings.graphics.maxFramerate, 30, 300);
+                    }
 
                     SettingsSection("World");
 
@@ -94,7 +104,13 @@ namespace UI {
 
                     ImGui::Checkbox("Clouds", &settings.graphics.clouds);
 
-                    ImGui::Checkbox("Ambient Occlusion", &settings.graphics.ambientOcclusion);
+                    if (ImGui::Checkbox("Ambient Occlusion [SSAO]", &settings.graphics.ambientOcclusion)) {
+                        context->renderer->getPass<SSAORenderpass>()->setEnabled(settings.graphics.ambientOcclusion);
+                    }
+
+                    if (ImGui::Checkbox("Anti Aliasing [FXAA]", &settings.graphics.fxaa)) {
+                        context->renderer->getPass<FXAARenderpass>()->setEnabled(settings.graphics.fxaa);
+                    }
 
                     SettingsSection("Quality");
 

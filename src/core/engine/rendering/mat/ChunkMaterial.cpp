@@ -41,7 +41,8 @@ void ChunkMaterial::bindForPass(PassType passType, const RenderContext& context)
         mainShader.bindUniformBuffer("LightsBlock", *context.lInfo.lightBuff);
         mainShader.bindUniformBuffer("ShadowMapsBlock", *context.lInfo.shadowMapBuff);
 
-        if (context.ssaoInfo.output) {
+        mainShader.setUniform("u_ssaoEnabled", context.ssaoInfo.enabled);
+        if (context.ssaoInfo.enabled) {
             context.ssaoInfo.output->bindToUnit(1);
             mainShader.setUniform("u_ssaoTexture", 1);
         }

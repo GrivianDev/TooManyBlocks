@@ -13,6 +13,9 @@ struct RenderResources;
 struct ApplicationContext;
 
 class Renderpass {
+private:
+    bool m_isEnabled;
+
 protected:
     std::unordered_map<Material*, std::vector<Renderable*>> m_materialBatches;
     float m_lastRunTimeMs;
@@ -24,6 +27,7 @@ protected:
     void batchByMaterialForPass(const std::vector<Renderable*>& meshBuff, PassType type);
 
 public:
+    Renderpass() : m_isEnabled(true) {}
     virtual ~Renderpass() = default;
 
     virtual const char* name() = 0;
@@ -31,6 +35,10 @@ public:
     void run(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext);
 
     virtual void putDebugInfo(DebugReport& report) = 0;
+
+    inline void setEnabled(bool enabled) { m_isEnabled = enabled; }
+
+    inline bool isEnabled() const { return m_isEnabled; }
 };
 
 #endif

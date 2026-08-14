@@ -76,7 +76,7 @@ void GameInstance::initializeWorld(World* newWorld) {
         auto light3 = std::make_shared<DirectionalLight>(glm::vec3(1.0f, 0.86f, 0.25f), 0.5f);
         light3->setCastsShadows(true);
         light3->setShadowDistance(110);
-        light3->setCascadeCount(3);
+        light3->setCascadeCount(4);
         light3->getLocalTransform().setPosition({15, 8, 0});
         light3->getLocalTransform().lookAt({14, 4, -4});
         m_lights.push_back(light3);
