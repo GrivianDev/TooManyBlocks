@@ -285,7 +285,7 @@ public:
         return *this;
     }
 
-    virtual inline void execute() override {
+    inline void execute() override {
         if (isEmpty()) throw std::runtime_error("Cannot execute empty future");
 
         auto s = getState();
@@ -315,7 +315,7 @@ public:
         }
     }
 
-    virtual inline void cancel() override {
+    inline void cancel() override {
         if (isEmpty() || isReady()) return;
 
         // Force advance status to Running so that completeFailure can run
@@ -343,9 +343,9 @@ public:
         s->cv.wait(lock, [this] { return isReady(); });
     }
 
-    virtual inline bool isEmpty() const override { return !stateRef || !stateRef->state; }
+    inline bool isEmpty() const override { return !stateRef || !stateRef->state; }
 
-    virtual inline bool isReady() const {
+    inline bool isReady() const override {
         auto s = getState();
         if (!s) return false;
         FutureStatus status = s->status.load();

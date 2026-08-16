@@ -16,7 +16,7 @@ glm::ivec3 Chunk::worldToChunkLocal(const glm::ivec3& chunkOrigin, const glm::iv
 void Chunk::tryCommitRebuild() {
     if (m_pendingRebuildMesh.isReady()) {
         lgr::lout.debug("Commiting rebuild");
-        m_mesh.getAssetHandle() = std::move(m_pendingRebuildMesh);
+        m_mesh->getAssetHandle() = std::move(m_pendingRebuildMesh);
 
         m_pendingRebuildMesh.reset();
     }

@@ -147,6 +147,7 @@ void World::updateChunks(const glm::ivec3& position) {
                 );
                 future.start();
             }
+            m_scene.destroy(it->second.m_mesh);
             it = m_loadedChunks.erase(it);
         } else {
             ++it;  // Chunk is still active
@@ -203,8 +204,8 @@ void World::updateChunks(const glm::ivec3& position) {
             // Put placeholder chunk (Chunk with no block data / mesh)
             Chunk placeHolder = Chunk();
             placeHolder.m_blocks = blockGenFuture;
-            placeHolder.m_mesh = StaticMesh(meshCreateFuture, m_chunkMaterial);
-            placeHolder.m_mesh.getLocalTransform().setPosition(chunkPos);
+            placeHolder.m_mesh = m_scene.create<StaticMesh>(meshCreateFuture, m_chunkMaterial);
+            placeHolder.m_mesh->getLocalTransform().setPosition(chunkPos);
             m_loadedChunks[chunkPos] = std::move(placeHolder);
 
         } else if (it->second.isChanged() && !it->second.isBeingRebuild()) {
@@ -260,4 +261,8 @@ void World::setBlock(const glm::ivec3& position, uint16_t newBlock) {
         // Queue changes
         m_pendingChanges[position] = newBlock;
     }
+}
+
+void World::update(float deltaTime) {
+    m_scene.update(deltaTime);
 }

@@ -66,6 +66,7 @@ void UI::StatScreen::render() {
         UI::Util::DrawDebugNode(m_report.getRoot());
 
         ImGui::SeparatorText("World Info");
+        ImGui::Text("Objects in scene: %lu", context->instance->m_world->scene().objectCount());
         ImGui::Text("Loaded chunks: %lu", context->instance->m_world->loadedChunks().size());
         glm::ivec3 currChunkOrigin = Chunk::worldToChunkOrigin(playerPos);
         ImGui::Text("Current chunk origin: (%d,%d,%d)", currChunkOrigin.x, currChunkOrigin.y, currChunkOrigin.z);

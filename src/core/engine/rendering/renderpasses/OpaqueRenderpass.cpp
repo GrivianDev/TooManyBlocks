@@ -11,8 +11,14 @@
 #include "engine/rendering/Frustum.h"
 #include "engine/rendering/GLUtils.h"
 #include "engine/rendering/Renderer.h"
+#include "engine/rendering/SkeletalMesh.h"
+#include "engine/rendering/particles/ParticleSystem.h"
 
-void OpaqueRenderpass::prepare(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
+void OpaqueRenderpass::prepare(
+    RenderContext& context,
+    RenderResources& resources,
+    const ApplicationContext& appContext
+) {
     if (context.screenResChanged) {
         createBuffers(context);
     }
@@ -31,7 +37,11 @@ void OpaqueRenderpass::prepare(RenderContext& context, RenderResources& resource
     }
 }
 
-void OpaqueRenderpass::execute(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
+void OpaqueRenderpass::execute(
+    RenderContext& context,
+    RenderResources& resources,
+    const ApplicationContext& appContext
+) {
     m_objectsProcessed = 0;
 
     cullObjectsOutOfView(*resources.objectsToRender, resources.culledObjectsBuffer, context.tInfo.viewProjection);
@@ -57,7 +67,11 @@ void OpaqueRenderpass::execute(RenderContext& context, RenderResources& resource
     m_materialBatches.clear();
 }
 
-void OpaqueRenderpass::cleanup(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
+void OpaqueRenderpass::cleanup(
+    RenderContext& context,
+    RenderResources& resources,
+    const ApplicationContext& appContext
+) {
     context.opaqueInfo.output = m_opaqueBuffer.getAttachedTextures().at(0).get();
 
     if (m_debugPolygonModeEnabled) {

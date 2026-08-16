@@ -101,7 +101,7 @@ void Renderer::init() {
 void Renderer::submitLight(Light* light) { m_lightsToRender.push_back(light); }
 
 void Renderer::submitRenderable(Renderable* obj) {
-    if (!obj->isReady()) return;
+    if (!obj->isReady() || !obj->isVisible()) return;
     m_objectsToRender.push_back(obj);
 }
 

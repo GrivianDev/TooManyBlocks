@@ -38,23 +38,23 @@ private:
     bool m_changed;          // If any block has been changed since the last rebuild started
     bool m_isMarkedForSave;  // If there are changes that need to be written back chunk file
     Future<std::unique_ptr<Block[]>> m_blocks;
-    StaticMesh m_mesh;
+    StaticMesh* m_mesh;
     Future<StaticMesh::Asset> m_pendingRebuildMesh;
 
 public:
     static glm::ivec3 worldToChunkOrigin(const glm::vec3& worldPos);
     static glm::ivec3 worldToChunkLocal(const glm::ivec3& chunkOrigin, const glm::ivec3& worldBlockPos);
 
-    Chunk() : m_changed(false), m_isMarkedForSave(false) {}
+    Chunk() : m_changed(false), m_isMarkedForSave(false), m_mesh(nullptr) {}
 
     void tryCommitRebuild();
 
-    inline bool isBeingRebuild() const { return m_pendingRebuildMesh.isReady(); }
+    inline bool isBeingRebuild() const { return !m_pendingRebuildMesh.isEmpty(); }
     inline bool isChanged() const { return m_changed; }
     inline bool isMarkedForSave() const { return m_isMarkedForSave; }
     inline bool isLoaded() const { return m_blocks.isReady(); }
     inline const Block* blocks() const { return m_blocks.isReady() ? m_blocks.value().get() : nullptr; }
-    inline StaticMesh* getMesh() { return &m_mesh; }
+    inline StaticMesh* getMesh() { return m_mesh; }
 };
 
 constexpr int chunkBlockIndex(int x, int y, int z) { return z * CHUNK_SLICE_SIZE + y * CHUNK_WIDTH + x; }

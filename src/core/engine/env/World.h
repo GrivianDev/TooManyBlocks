@@ -7,17 +7,20 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "engine/Scene.h"
+#include "engine/Updatable.h"
+#include "engine/assets/cpu/CPURenderData.h"
 #include "engine/env/Chunk.h"
 #include "engine/persistence/ChunkStorage.h"
 #include "engine/rendering/BlockToTextureMapping.h"
 #include "engine/rendering/Vertices.h"
 #include "engine/rendering/mat/ChunkMaterial.h"
-#include "engine/assets/cpu/CPURenderData.h"
 #include "foundation/threading/Future.h"
 
-class World {
+class World : public Updatable {
 private:
     uint64_t m_taskContext;
+    Scene m_scene;
 
     uint32_t m_seed;
     const std::filesystem::path m_worldDir;
@@ -37,7 +40,9 @@ public:
 
     ~World();
 
-    uint32_t seed() const { return m_seed; }
+    inline uint32_t seed() const { return m_seed; }
+
+    inline Scene& scene() { return m_scene; }
 
     Chunk* getChunk(const glm::ivec3& location);
 
@@ -47,11 +52,13 @@ public:
 
     void setBlock(const glm::ivec3& position, uint16_t newBlocks);
 
-    std::unordered_map<glm::ivec3, Chunk, coord_hash>& loadedChunks() { return m_loadedChunks; }
+    inline std::unordered_map<glm::ivec3, Chunk, coord_hash>& loadedChunks() { return m_loadedChunks; }
 
     inline void setChunkLoadingDistance(int distance) { chunkLoadingDistance = distance; }
 
     inline int getChunkLoadingDistance() const { return chunkLoadingDistance; }
+
+    void update(float deltaTime) override;
 };
 
 #endif
