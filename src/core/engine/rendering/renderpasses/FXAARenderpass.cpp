@@ -10,7 +10,7 @@
 #include "engine/rendering/lowlevelapi/FrameBuffer.h"
 
 void FXAARenderpass::prepare(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
-    if (context.screenResChanged) {
+    if (context.screenResChanged || m_fxaaBuffer.getAttachedTextures().empty()) {
         createBuffers(context);
     }
 
