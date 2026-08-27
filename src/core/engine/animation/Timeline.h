@@ -87,10 +87,6 @@ public:
             throw std::runtime_error("No keyframes to sample from!");
         }
 
-        if (m_keyframes.size() == 1) {
-            return m_keyframes.front().value;
-        }
-
         // Clamp to first or last
         if (time <= m_keyframes.front().time) return m_keyframes.front().value;
         if (time >= m_keyframes.back().time) return m_keyframes.back().value;
@@ -110,20 +106,20 @@ public:
         }
     }
 
-    void setInterpolationMode(Interpolation interpMode) { m_interpMode = interpMode; }
+    inline void setInterpolationMode(Interpolation interpMode) { m_interpMode = interpMode; }
 
-    Interpolation getInterpolationMode() const { return m_interpMode; }
+    inline Interpolation getInterpolationMode() const { return m_interpMode; }
 
-    const std::vector<Keyframe<T>>& getKeyframes() const {
+    inline const std::vector<Keyframe<T>>& getKeyframes() const {
         return m_keyframes;
     }
 
-    float getStartTime() const override {
+    inline float getStartTime() const override {
         if (m_keyframes.empty()) return 0.0f;
         return m_keyframes.front().time;
     }
 
-    float getEndTime() const override {
+    inline float getEndTime() const override {
         if (m_keyframes.empty()) return 0.0f;
         return m_keyframes.back().time;
     }

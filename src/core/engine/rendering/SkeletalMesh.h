@@ -3,7 +3,8 @@
 
 #include <memory>
 
-#include "engine/animation/Animation.h"
+#include "engine/animation/AnimationClip.h"
+#include "engine/animation/AnimationController.h"
 #include "engine/assets/cpu/CPUSkeletalMeshData.h"
 #include "engine/geometry/BoundingVolume.h"
 #include "engine/rendering/RenderData.h"
@@ -22,41 +23,44 @@ public:
 
         std::vector<Node> nodeArray;
         int animatedMeshNodeIndex;
-        std::vector<AnimationDeclare> animations;
+        std::vector<AnimationClip> animations;
         BoundingBox bounds;
     };
 
     struct Instance {
         std::vector<SceneComponent> nodeArray;
-        std::vector<Animation> animations;
         UniformBuffer jointMatricesUBO;
     };
 
 private:
     Future<Asset> m_asset;
     Future<Instance> m_instance;
-    Animation* m_activeAnim;
+    std::unique_ptr<AnimationController> m_animController;
 
 public:
-    SkeletalMesh() : m_activeAnim(nullptr) {}
+    float testValue = 0.0f;
+
+    SkeletalMesh() = default;
     SkeletalMesh(const Future<Asset>& asset, std::shared_ptr<Material> material = nullptr);
     virtual ~SkeletalMesh() = default;
 
     void draw() const override;
 
-    bool playAnimation(const std::string& animation, bool loop = false, bool restart = true);
-
-    void stopAnimation();
-
     inline bool isReady() const override { return Renderable::isReady() && m_asset.isReady() && m_instance.isReady(); }
 
-    inline const Animation* getActiveAnimation() const { return m_activeAnim; }
+    inline void setAnimationController(std::unique_ptr<AnimationController> controller) {
+        m_animController = std::move(controller);
+    }
+
+    inline const AnimationController* getAnimationController() const { return m_animController.get(); }
+
+    const AnimationClip* getAnimation(const std::string& name) const;
 
     inline Future<Asset>& getAssetHandle() { return m_asset; }
 
     const UniformBuffer* getJointMatrices() const;
 
-    Transform getRenderableTransform() const override;
+    size_t getNodeCount() const;
 
     virtual BoundingBox getBoundingBox() const override;
 

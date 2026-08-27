@@ -34,6 +34,7 @@ void Scene::onTagRemoved(SceneComponent* component, const std::string& tag) {
 
 void Scene::destroy(SceneComponent* component) {
     if (!component) return;
+    if (component->scene != this) return;
 
     const std::vector<SceneComponent*> children = component->children;  // copy
     for (SceneComponent* child : children) destroy(child);
@@ -51,7 +52,7 @@ void Scene::destroy(SceneComponent* component) {
     }
 
     // Remove from tag index
-    for (const auto& tag : component->getTags()) {
+    for (const std::string& tag : component->getTags()) {
         auto it = m_tagIndex.find(tag);
         if (it != m_tagIndex.end()) {
             it->second.erase(component);

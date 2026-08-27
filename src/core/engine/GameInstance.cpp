@@ -7,6 +7,10 @@
 #include "AppConstants.h"
 #include "Application.h"
 #include "Logger.h"
+#include "engine/animation/AnimationClipPlayer.h"
+#include "engine/animation/AnimationStateMachine.h"
+#include "engine/animation/BlendSpacePlayer1D.h"
+#include "engine/animation/BoneMask.h"
 #include "engine/assets/AssetManager.h"
 #include "engine/assets/EngineAssets.h"
 #include "engine/controllers/PlayerController.h"
@@ -122,13 +126,14 @@ void GameInstance::initializeWorld(World* newWorld) {
         focusedBlockOutline->setLineWidth(3.5f);
 
         Future<Shader> skeletalShader = assets->request<Shader>(Assets::Shader::SKELETAL_MESH);
-        Future<Texture> skeletalTexture = assets->request<Texture>(Assets::Texture::TESTFLY_TEXTURE);
-        Future<SkeletalMesh::Asset> skeletalMeshAsset = assets->request<SkeletalMesh::Asset>(Assets::Model::TESTFLY);
+        Future<Texture> skeletalTexture = assets->request<Texture>(Assets::Texture::HUMANOID_TEXTURE);
+        Future<SkeletalMesh::Asset> skeletalMeshAsset = assets->request<SkeletalMesh::Asset>(Assets::Model::HUMANOID);
         SkeletalMesh* skeletalMesh = scene.create<SkeletalMesh>(
             skeletalMeshAsset, std::make_shared<SkeletalMaterial>(skeletalShader, skeletalTexture)
         );
         skeletalMesh->setName("MySkeletalMesh");
-        skeletalMesh->getLocalTransform().setPosition(glm::vec3(10.0f, 8.0f, 5.0f));
+        skeletalMesh->getLocalTransform().setPosition(glm::vec3(6.0f, 8.0f, 5.0f));
+        skeletalMesh->getLocalTransform().setScale(0.2f);
 
         // Particles
         ParticleSystem* particles = scene.create<ParticleSystem>(std::vector<GenericGPUParticleModule>{
@@ -189,6 +194,12 @@ void GameInstance::pushWorldRenderData() {
 }
 
 void GameInstance::update(float deltaTime) {
+    // A bunch of debug / showcase stuff
+    static float accumulatorToggle = 0.0f;
+    accumulatorToggle += deltaTime;
+
+    static float blendDirection = -1.0f;
+
     gameState.deltaTime = deltaTime;
     gameState.elapsedGameTime += deltaTime;
 
@@ -205,8 +216,74 @@ void GameInstance::update(float deltaTime) {
     m_world->update(deltaTime);
 
     SkeletalMesh* skeletalMesh = static_cast<SkeletalMesh*>(m_world->scene().findByName("MySkeletalMesh"));
-    if (!skeletalMesh->getActiveAnimation()) {
-        skeletalMesh->playAnimation("Idle", true);
+    if (skeletalMesh && accumulatorToggle > 5.0f) {
+        if (skeletalMesh->hasTag("ShouldRun")) {
+            skeletalMesh->removeTag("ShouldRun");
+
+        } else {
+            skeletalMesh->addTag("ShouldRun");
+        }
+        accumulatorToggle = 0.0f;
+    }
+    if (skeletalMesh) {
+        skeletalMesh->testValue += blendDirection * deltaTime * 0.1f;
+
+        if (skeletalMesh->testValue >= 1.0f) {
+            skeletalMesh->testValue = 1.0f;
+            blendDirection = -1.0f;
+        } else if (skeletalMesh->testValue <= 0.0f) {
+            skeletalMesh->testValue = 0.0f;
+            blendDirection = 1.0f;
+        }
+    }
+
+    if (skeletalMesh->isReady() && !skeletalMesh->getAnimationController()) {
+        std::unique_ptr<AnimationController> controller = std::make_unique<AnimationController>(skeletalMesh);
+
+        std::unique_ptr<AnimationClipPlayer> idlePlayer = std::make_unique<AnimationClipPlayer>();
+        idlePlayer->play(skeletalMesh->getAnimation("Idle"), true);
+
+        std::unique_ptr<AnimationClipPlayer> walkPlayer = std::make_unique<AnimationClipPlayer>();
+        walkPlayer->play(skeletalMesh->getAnimation("Walk"), true);
+
+        std::unique_ptr<AnimationClipPlayer> runPlayer = std::make_unique<AnimationClipPlayer>();
+        runPlayer->play(skeletalMesh->getAnimation("Run"), true);
+
+        // Blendspace
+        std::unique_ptr<BlendSpacePlayer1D> blendSpace = std::make_unique<BlendSpacePlayer1D>(
+            skeletalMesh, [](const SkeletalMesh* owner) { return owner->testValue; }
+        );
+        blendSpace->setSpeed(2.0f);
+        blendSpace->addSample(0.0f, std::move(idlePlayer));
+        blendSpace->addSample(0.5f, std::move(walkPlayer));
+        blendSpace->addSample(1.0f, std::move(runPlayer));
+
+        std::unique_ptr<AnimationClipPlayer> idlePlayer2 = std::make_unique<AnimationClipPlayer>();
+        idlePlayer2->play(skeletalMesh->getAnimation("Idle"), true);
+        std::unique_ptr<AnimationClipPlayer> runPlayer2 = std::make_unique<AnimationClipPlayer>();
+        runPlayer2->play(skeletalMesh->getAnimation("Run"), true);
+
+        // State machine
+        std::unique_ptr<AnimationStateMachine> stateMachine = std::make_unique<AnimationStateMachine>(skeletalMesh);
+        stateMachine->addState("IdleState", std::move(idlePlayer2));
+        stateMachine->addState("RunState", std::move(runPlayer2));
+
+        stateMachine->addTransition(
+            "IdleState", "RunState", [](const SkeletalMesh* owner) { return owner->hasTag("ShouldRun"); }, 2.0f
+        );
+        stateMachine->addTransition(
+            "RunState", "IdleState", [](const SkeletalMesh* owner) { return !owner->hasTag("ShouldRun"); }, 0.5f
+        );
+        stateMachine->transitionTo("IdleState");
+
+        AnimationLayer& layer1 = controller->addLayer(std::move(stateMachine));
+        BoneMask torsoMask = BoneMask::hierarchy(skeletalMesh->getAssetHandle().value().nodeArray, "Torso");
+        layer1.setMask(torsoMask);
+
+        AnimationLayer& layer2 = controller->addLayer(std::move(blendSpace));
+        layer2.setMask(~torsoMask);
+
+        skeletalMesh->setAnimationController(std::move(controller));
     }
     SceneComponent* blockOutline = m_world->scene().findByTag("FocusBlockOutline");
     blockOutline->setVisible(m_player->isFocusingBlock());

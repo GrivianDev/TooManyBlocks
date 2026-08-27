@@ -128,7 +128,9 @@ void setupAssets(AssetManager& assets) {
     Assets::Texture::BLOCK_TEX_ATLAS = assets.import<FileSource>({Res::Texture::BLOCK_TEX_ATLAS});
     Assets::Texture::TESTBLOCK_TEXTURE = assets.import<FileSource>({Res::Texture::TESTBLOCK_TEXTURE});
     Assets::Texture::TESTFLY_TEXTURE = assets.import<FileSource>({Res::Texture::TESTFLY_TEXTURE});
+    Assets::Texture::HUMANOID_TEXTURE = assets.import<FileSource>({Res::Texture::HUMANOID_TEXTURE});
 
     Assets::Model::TEST_UNIT_BLOCK = assets.import<FileSource>({Res::Model::TEST_UNIT_BLOCK});
     Assets::Model::TESTFLY = assets.import<FileSource>({Res::Model::TESTFLY});
+    Assets::Model::HUMANOID = assets.import<FileSource>({Res::Model::HUMANOID});
 }

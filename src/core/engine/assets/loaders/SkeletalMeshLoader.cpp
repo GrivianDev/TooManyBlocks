@@ -419,9 +419,9 @@ CPUSkeletalMeshData loadSkeletalMeshFromGlbFile(const std::string& glbFilePath, 
             // Parse animations
             skData.animations.reserve(jsonChunkObj["animations"].toArray().size());
             for (const Json::JsonValue& animationJson : jsonChunkObj["animations"].toArray()) {
-                AnimationDeclare animDeclaration;
-                animDeclaration.name = animationJson["name"].toString();
-                animDeclaration.channels.reserve(animationJson["channels"].toArray().size());
+                const std::string& name = animationJson["name"].toString();
+                std::vector<AnimationClip::Channel> channels;
+                channels.reserve(animationJson["channels"].toArray().size());
 
                 for (const Json::JsonValue& channel : animationJson["channels"].toArray()) {
                     int targetNode = channel["target"]["node"].toInt();
@@ -481,7 +481,7 @@ CPUSkeletalMeshData loadSkeletalMeshFromGlbFile(const std::string& glbFilePath, 
                         std::shared_ptr<Timeline<glm::vec3>> timeline = std::make_shared<Timeline<glm::vec3>>(
                             std::move(keyframes), interpolation
                         );
-                        animDeclaration.channels.push_back({targetNode, AnimationProperty::Translation, timeline});
+                        channels.push_back({targetNode, AnimationProperty::Translation, timeline});
                     } else if (channelString == "rotation") {
                         if (outputAccessor["type"].toString() != "VEC4") {
                             throw std::runtime_error("Rotation animation channel is not of type VEC4");
@@ -500,7 +500,7 @@ CPUSkeletalMeshData loadSkeletalMeshFromGlbFile(const std::string& glbFilePath, 
                         std::shared_ptr<Timeline<glm::quat>> timeline = std::make_shared<Timeline<glm::quat>>(
                             std::move(keyframes), interpolation
                         );
-                        animDeclaration.channels.push_back({targetNode, AnimationProperty::Rotation, timeline});
+                        channels.push_back({targetNode, AnimationProperty::Rotation, timeline});
                     } else if (channelString == "scale") {
                         if (outputAccessor["type"].toString() != "VEC3") {
                             throw std::runtime_error("Scale animation channel is not of type VEC3");
@@ -519,13 +519,13 @@ CPUSkeletalMeshData loadSkeletalMeshFromGlbFile(const std::string& glbFilePath, 
                         std::shared_ptr<Timeline<float>> timeline = std::make_shared<Timeline<float>>(
                             std::move(keyframes), interpolation
                         );
-                        animDeclaration.channels.push_back({targetNode, AnimationProperty::Scale, timeline});
+                        channels.push_back({targetNode, AnimationProperty::Scale, timeline});
                     } else {
                         throw std::runtime_error("Unknown animation path: " + channel["target"]["path"].toString());
                     }
                 }
 
-                skData.animations.push_back(std::move(animDeclaration));
+                skData.animations.push_back(AnimationClip(name, channels));
             }
 
             // Resolve parent idices
