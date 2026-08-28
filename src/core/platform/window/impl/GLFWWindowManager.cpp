@@ -66,6 +66,10 @@ void GLFWWindowManager::pollEvents() { glfwPollEvents(); }
 void GLFWWindowManager::enableVSync(bool enabled) { glfwSwapInterval(enabled ? 1 : 0); }
 
 void GLFWWindowManager::setCursorMode(CursorMode mode) {
+#ifdef DEBUG_MODE
+    if (mode == CursorMode::HiddenAndCaptured) /* Prevent debug point triggering with captured mouse*/ return;
+#endif
+
     switch (mode) {
         case CursorMode::Normal: glfwSetInputMode(m_currentWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL); break;
         case CursorMode::HiddenAndCaptured: glfwSetInputMode(m_currentWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED); break;
