@@ -42,7 +42,7 @@ namespace UI {
                     }
                 }
             }
-            lgr::lout.debug("Saves directory: " + savedDir.string());
+            lgr::lout.info("Saves directory: " + savedDir.string());
 
             return infoArray;
         });

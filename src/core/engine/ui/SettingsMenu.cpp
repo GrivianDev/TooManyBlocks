@@ -25,6 +25,36 @@ static void SettingsSection(const char* name) {
     ImGui::Spacing();
 }
 
+static void InfoRow(const char* label, const std::string& value) {
+    ImGui::Text("%s", label);
+    ImGui::SameLine(300.0f);
+    ImGui::Text("%s", value.c_str());
+}
+
+static void InfoRow(const char* label, const char* value) {
+    ImGui::Text("%s", label);
+    ImGui::SameLine(300.0f);
+    ImGui::Text("%s", value ? value : "Unknown");
+}
+
+static void InfoRow(const char* label, int value) {
+    ImGui::Text("%s", label);
+    ImGui::SameLine(300.0f);
+    ImGui::Text("%d", value);
+}
+
+static void InfoRow(const char* label, float value, const char* format = "%.1f") {
+    ImGui::Text("%s", label);
+    ImGui::SameLine(300.0f);
+    ImGui::Text(format, value);
+}
+
+static void InfoRow(const char* label, bool value) {
+    ImGui::Text("%s", label);
+    ImGui::SameLine(300.0f);
+    ImGui::TextUnformatted(value ? "Yes" : "No");
+}
+
 namespace UI {
     SettingsMenu::SettingsMenu() {
         AudioEngine* audio = Application::getContext()->audioEngine;
@@ -37,6 +67,7 @@ namespace UI {
     void SettingsMenu::render() {
         ApplicationContext* context = Application::getContext();
         GameSettings& settings = context->instance->gameSettings;
+        Renderer* renderer = context->renderer;
 
         ImGuiIO& io = ImGui::GetIO();
 
@@ -66,15 +97,12 @@ namespace UI {
                         )) {
                         context->windowManager->setWindowMode(static_cast<WindowMode>(settings.graphics.windowMode));
                     }
-
                     if (ImGui::Checkbox("VSync", &settings.graphics.vsync)) {
                         context->windowManager->enableVSync(settings.graphics.vsync);
                     }
-
                     if (ImGui::Checkbox("Unlimited FPS", &m_unlimitedFrameRate)) {
                         settings.graphics.maxFramerate = m_unlimitedFrameRate ? 0 : 90;
                     }
-
                     if (!m_unlimitedFrameRate) {
                         ImGui::SliderInt("Max Framerate", &settings.graphics.maxFramerate, 30, 300);
                     }
@@ -99,15 +127,12 @@ namespace UI {
                     SettingsSection("Visuals");
 
                     ImGui::Checkbox("Entity Shadows", &settings.graphics.entityShadows);
-
                     ImGui::Checkbox("Particles", &settings.graphics.particles);
-
                     ImGui::Checkbox("Clouds", &settings.graphics.clouds);
 
                     if (ImGui::Checkbox("Ambient Occlusion [SSAO]", &settings.graphics.ambientOcclusion)) {
                         context->renderer->getPass<SSAORenderpass>()->setEnabled(settings.graphics.ambientOcclusion);
                     }
-
                     if (ImGui::Checkbox("Anti Aliasing [FXAA]", &settings.graphics.fxaa)) {
                         context->renderer->getPass<FXAARenderpass>()->setEnabled(settings.graphics.fxaa);
                     }
@@ -117,15 +142,12 @@ namespace UI {
                     ImGui::Combo(
                         "Shadow Quality", &settings.graphics.shadowQuality, qualityNames, IM_ARRAYSIZE(qualityNames)
                     );
-
                     ImGui::Combo(
                         "Texture Quality", &settings.graphics.textureQuality, qualityNames, IM_ARRAYSIZE(qualityNames)
                     );
-
                     ImGui::Combo(
                         "Particle Quality", &settings.graphics.particleQuality, qualityNames, IM_ARRAYSIZE(qualityNames)
                     );
-
                     SettingsSection("Debug");
                     if (ImGui::Checkbox("Polygon Rendermode", &settings.graphics.debugPolygonModeEnabled)) {
                         context->renderer->setDebugPolygonModeEnabled(settings.graphics.debugPolygonModeEnabled);
@@ -196,6 +218,98 @@ namespace UI {
 
                 if (ImGui::BeginTabItem("Interface")) {
                     // Interface settings...
+
+                    ImGui::EndTabItem();
+                }
+
+                ImGui::Spacing();
+
+                if (ImGui::BeginTabItem("System Information")) {
+                    const GraphicsInfo& graphicsInfo = renderer->getGraphicsInfo();
+                    const GraphicsContextInfo& contextInfo = graphicsInfo.context;
+                    const GraphicsLimits& limits = graphicsInfo.limits;
+
+                    SettingsSection("Graphics");
+
+                    InfoRow("Vendor", graphicsInfo.vendor);
+                    InfoRow("Renderer", graphicsInfo.renderer);
+                    InfoRow("OpenGL Version", graphicsInfo.version);
+                    InfoRow("GLSL Version", graphicsInfo.shadingLanguageVersion);
+
+                    SettingsSection("OpenGL Context");
+
+                    std::string contextVersion = std::to_string(contextInfo.majorVersion) + "." +
+                                                 std::to_string(contextInfo.minorVersion);
+
+                    InfoRow("Version", contextVersion);
+
+                    std::string profile;
+
+                    if (contextInfo.coreProfile) {
+                        profile = "Core";
+                    } else if (contextInfo.compatibilityProfile) {
+                        profile = "Compatibility";
+                    } else {
+                        profile = "Unknown";
+                    }
+
+                    InfoRow("Profile", profile);
+                    InfoRow("Debug Context", contextInfo.debugContext);
+                    InfoRow("Forward Compatible", contextInfo.forwardCompatible);
+                    InfoRow("Robust Access", contextInfo.robustAccess);
+
+                    ImGui::Spacing();
+                    ImGui::Spacing();
+                    
+                    if (ImGui::CollapsingHeader("Advanced Limits")) {
+                        SettingsSection("Texture Limits");
+
+                        InfoRow("Max Texture Size", limits.maxTextureSize);
+                        InfoRow("Max 3D Texture Size", limits.max3DTextureSize);
+                        InfoRow("Max Cube Map Size", limits.maxCubeMapTextureSize);
+                        InfoRow("Max Array Texture Layers", limits.maxArrayTextureLayers);
+                        InfoRow("Max Texture Units", limits.maxTextureImageUnits);
+                        InfoRow("Max Combined Texture Units", limits.maxCombinedTextureImageUnits);
+                        InfoRow("Max Vertex Texture Units", limits.maxVertexTextureImageUnits);
+
+                        SettingsSection("Rendering Limits");
+
+                        InfoRow("Max Vertex Attributes", limits.maxVertexAttribs);
+                        InfoRow("Max Draw Buffers", limits.maxDrawBuffers);
+                        InfoRow("Max Color Attachments", limits.maxColorAttachments);
+                        InfoRow("Max MSAA Samples", limits.maxSamples);
+                        InfoRow("Max Viewport Width", limits.maxViewportWidth);
+                        InfoRow("Max Viewport Height", limits.maxViewportHeight);
+                        InfoRow("Max Anisotropy", limits.maxAnisotropy, "%.1fx");
+
+                        SettingsSection("Buffer Limits");
+
+                        InfoRow("Max Uniform Buffer Bindings", limits.maxUniformBufferBindings);
+                        InfoRow("Max Uniform Block Size", limits.maxUniformBlockSize);
+                        InfoRow("Max SSBO Bindings", limits.maxShaderStorageBufferBindings);
+                        InfoRow("Max SSBO Block Size", limits.maxShaderStorageBlockSize);
+
+                        SettingsSection("Shader Limits");
+
+                        InfoRow("Vertex Uniform Components", limits.maxVertexUniformComponents);
+                        InfoRow("Fragment Uniform Components", limits.maxFragmentUniformComponents);
+                        InfoRow("Max Varying Vectors", limits.maxVaryingVectors);
+
+                        SettingsSection("Compute Shader Limits");
+
+                        InfoRow("Max Work Group Invocations", limits.maxComputeWorkGroupInvocations);
+
+                        std::string workGroupCount = std::to_string(limits.maxComputeWorkGroupCount[0]) + " x " +
+                                                     std::to_string(limits.maxComputeWorkGroupCount[1]) + " x " +
+                                                     std::to_string(limits.maxComputeWorkGroupCount[2]);
+
+                        std::string workGroupSize = std::to_string(limits.maxComputeWorkGroupSize[0]) + " x " +
+                                                    std::to_string(limits.maxComputeWorkGroupSize[1]) + " x " +
+                                                    std::to_string(limits.maxComputeWorkGroupSize[2]);
+
+                        InfoRow("Max Work Group Count", workGroupCount);
+                        InfoRow("Max Work Group Size", workGroupSize);
+                    }
 
                     ImGui::EndTabItem();
                 }

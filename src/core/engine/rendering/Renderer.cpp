@@ -40,18 +40,113 @@ static constexpr float fullScreenQuadCW[] = {
     1.0f,  1.0f,  1.0f, 1.0f   // Top-Right
 };
 
+void Renderer::queryGraphicsInfo() {
+    // Basic identification
+    const GLubyte* vendor = nullptr;
+    GLCALL(vendor = glGetString(GL_VENDOR));
+    if (vendor) {
+        m_graphicsInfo.vendor = reinterpret_cast<const char*>(vendor);
+    }
+
+    const GLubyte* renderer = nullptr;
+    GLCALL(renderer = glGetString(GL_RENDERER));
+    if (renderer) {
+        m_graphicsInfo.renderer = reinterpret_cast<const char*>(renderer);
+    }
+
+    const GLubyte* version = nullptr;
+    GLCALL(version = glGetString(GL_VERSION));
+    if (version) {
+        m_graphicsInfo.version = reinterpret_cast<const char*>(version);
+    }
+
+    const GLubyte* shadingLanguageVersion = nullptr;
+    GLCALL(shadingLanguageVersion = glGetString(GL_SHADING_LANGUAGE_VERSION));
+    if (shadingLanguageVersion) {
+        m_graphicsInfo.shadingLanguageVersion = reinterpret_cast<const char*>(shadingLanguageVersion);
+    }
+
+    // OpenGL context
+    GLCALL(glGetIntegerv(GL_MAJOR_VERSION, &m_graphicsInfo.context.majorVersion));
+    GLCALL(glGetIntegerv(GL_MINOR_VERSION, &m_graphicsInfo.context.minorVersion));
+    GLint profile = 0;
+    GLCALL(glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profile));
+    m_graphicsInfo.context.coreProfile = (profile & GL_CONTEXT_CORE_PROFILE_BIT) != 0;
+    m_graphicsInfo.context.compatibilityProfile = (profile & GL_CONTEXT_COMPATIBILITY_PROFILE_BIT) != 0;
+    GLint flags = 0;
+    GLCALL(glGetIntegerv(GL_CONTEXT_FLAGS, &flags));
+    m_graphicsInfo.context.debugContext = (flags & GL_CONTEXT_FLAG_DEBUG_BIT) != 0;
+    m_graphicsInfo.context.forwardCompatible = (flags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT) != 0;
+
+#ifdef GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT
+    m_graphicsInfo.context.robustAccess = (flags & GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT) != 0;
+#endif
+
+    // Limits
+    GLCALL(glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_graphicsInfo.limits.maxTextureSize));
+    GLCALL(glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &m_graphicsInfo.limits.max3DTextureSize));
+    GLCALL(glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &m_graphicsInfo.limits.maxCubeMapTextureSize));
+    GLCALL(glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &m_graphicsInfo.limits.maxArrayTextureLayers));
+    GLCALL(glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &m_graphicsInfo.limits.maxTextureImageUnits));
+    GLCALL(glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &m_graphicsInfo.limits.maxCombinedTextureImageUnits));
+    GLCALL(glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &m_graphicsInfo.limits.maxVertexTextureImageUnits));
+    GLCALL(glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &m_graphicsInfo.limits.maxVertexAttribs));
+    GLCALL(glGetIntegerv(GL_MAX_DRAW_BUFFERS, &m_graphicsInfo.limits.maxDrawBuffers));
+    GLCALL(glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &m_graphicsInfo.limits.maxColorAttachments));
+    GLCALL(glGetIntegerv(GL_MAX_SAMPLES, &m_graphicsInfo.limits.maxSamples));
+
+    // Buffer limits
+    GLCALL(glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &m_graphicsInfo.limits.maxUniformBufferBindings));
+    GLCALL(glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &m_graphicsInfo.limits.maxUniformBlockSize));
+
+#ifdef GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS
+    GLCALL(glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &m_graphicsInfo.limits.maxShaderStorageBufferBindings));
+#endif
+
+#ifdef GL_MAX_SHADER_STORAGE_BLOCK_SIZE
+    GLint64 maxSSBOSize = 0;
+
+    GLCALL(glGetInteger64v(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &maxSSBOSize));
+
+    m_graphicsInfo.limits.maxShaderStorageBlockSize = static_cast<int>(
+        std::min<GLint64>(maxSSBOSize, std::numeric_limits<int>::max())
+    );
+#endif
+
+    // Shader limits
+    GLCALL(glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &m_graphicsInfo.limits.maxVertexUniformComponents));
+    GLCALL(glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &m_graphicsInfo.limits.maxFragmentUniformComponents));
+
+#ifdef GL_MAX_VARYING_VECTORS
+    GLCALL(glGetIntegerv(GL_MAX_VARYING_VECTORS, &m_graphicsInfo.limits.maxVaryingVectors));
+#endif
+
+    // Compute shader limits
+#ifdef GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS
+    GLCALL(glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &m_graphicsInfo.limits.maxComputeWorkGroupInvocations));
+    GLCALL(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &m_graphicsInfo.limits.maxComputeWorkGroupCount[0]));
+    GLCALL(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &m_graphicsInfo.limits.maxComputeWorkGroupCount[1]));
+    GLCALL(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &m_graphicsInfo.limits.maxComputeWorkGroupCount[2]));
+    GLCALL(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &m_graphicsInfo.limits.maxComputeWorkGroupSize[0]));
+    GLCALL(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &m_graphicsInfo.limits.maxComputeWorkGroupSize[1]));
+    GLCALL(glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &m_graphicsInfo.limits.maxComputeWorkGroupSize[2]));
+#endif
+
+    // Viewport
+    GLint viewport[2] = {};
+    GLCALL(glGetIntegerv(GL_MAX_VIEWPORT_DIMS, viewport));
+    m_graphicsInfo.limits.maxViewportWidth = viewport[0];
+    m_graphicsInfo.limits.maxViewportHeight = viewport[1];
+}
+
 void Renderer::init() {
     if (glewInit() != GLEW_OK) {
         throw std::runtime_error("Error initializing glew!");
     }
 
-    // Graphic api details
-    std::ostringstream detailsBuf;
-    detailsBuf << "Open GL Version: " << glGetString(GL_VERSION) << "\n";
-    detailsBuf << "GLSL Version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << "\n";
-    detailsBuf << "Graphics: " << glGetString(GL_RENDERER) << "[" << glGetString(GL_VENDOR) << "]" << "\n";
-
     // GLEnableDebugging();
+
+    queryGraphicsInfo();
 
     GLCALL(glEnable(GL_DEPTH_TEST));
     GLCALL(glEnable(GL_CULL_FACE));  // Enable face culling

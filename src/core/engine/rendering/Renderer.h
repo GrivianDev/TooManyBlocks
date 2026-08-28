@@ -17,6 +17,68 @@
 
 struct ApplicationContext;
 
+struct GraphicsLimits {
+    int maxTextureSize;
+    int max3DTextureSize;
+    int maxCubeMapTextureSize;
+
+    int maxArrayTextureLayers;
+
+    int maxTextureImageUnits;
+    int maxCombinedTextureImageUnits;
+
+    int maxVertexTextureImageUnits;
+    int maxVertexAttribs;
+
+    int maxDrawBuffers;
+    int maxColorAttachments;
+
+    int maxSamples;
+
+    int maxUniformBufferBindings;
+    int maxShaderStorageBufferBindings;
+
+    int maxUniformBlockSize;
+    int maxShaderStorageBlockSize;
+
+    int maxVertexUniformComponents;
+    int maxFragmentUniformComponents;
+
+    int maxVaryingVectors;
+
+    int maxComputeWorkGroupInvocations;
+    int maxComputeWorkGroupCount[3];
+    int maxComputeWorkGroupSize[3];
+
+    int maxViewportWidth;
+    int maxViewportHeight;
+
+    float maxAnisotropy;
+};
+
+struct GraphicsContextInfo {
+    int majorVersion;
+    int minorVersion;
+
+    bool coreProfile;
+    bool compatibilityProfile;
+
+    bool debugContext;
+    bool forwardCompatible;
+    bool robustAccess;
+};
+
+struct GraphicsInfo {
+    // Driver / GPU identification
+    std::string vendor;
+    std::string renderer;
+    std::string version;
+    std::string shadingLanguageVersion;
+
+    GraphicsContextInfo context;
+    GraphicsLimits limits;
+};
+
 struct LightingInfo {
     unsigned int activeLightsCount;
     std::array<Texture*, SHADOW_ATLAS_COUNT> shadowMapAtlases;
@@ -105,9 +167,12 @@ private:
     RenderResources m_renderResources;
     std::vector<std::unique_ptr<Renderpass>> m_renderpasses;
 
+    GraphicsInfo m_graphicsInfo;
     int m_lastLightCount;
     int m_lastObjectCount;
     float m_lastRenderTimeMs;
+
+    void queryGraphicsInfo();
 
 public:
     Renderer() : m_currentRenderContext{}, m_renderResources{} {}
@@ -123,6 +188,8 @@ public:
     void drawFullscreenQuad();
 
     void fillDebugReport(DebugReport& report) const;
+
+    inline const GraphicsInfo& getGraphicsInfo() const { return m_graphicsInfo; }
 
     void setDebugPolygonModeEnabled(bool enabled);
 
