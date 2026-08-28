@@ -97,8 +97,8 @@ template <typename T>
 struct RepresentationFactory : IRepresentationFactory {
     std::function<Future<T>(AssetHandle, AssetManager&)> create;
 
-    explicit RepresentationFactory(const std::function<Future<T>(AssetHandle, AssetManager&)>& createFn)
-        : create(createFn) {}
+    explicit RepresentationFactory(std::function<Future<T>(AssetHandle, AssetManager&)>&& createFn)
+        : create(std::move(createFn)) {}
 };
 
 class AssetManager : public Updatable {
@@ -185,9 +185,9 @@ public:
 
      // Registered factories should construct an already started future
     template <typename T>
-    void registerFactory(const std::function<Future<T>(AssetHandle, AssetManager&)>& factory) {
+    void registerFactory(std::function<Future<T>(AssetHandle, AssetManager&)> factory) {
         std::lock_guard<std::mutex> lock(m_mtx);
-        m_factories[typeid(T)] = std::make_unique<RepresentationFactory<T>>(factory);
+        m_factories[typeid(T)] = std::make_unique<RepresentationFactory<T>>(std::move(factory));
     }
 
     template <typename T>

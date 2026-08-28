@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include <stdexcept>
+#include <filesystem>
 
 #include "AppConstants.h"
 #include "Logger.h"
@@ -213,6 +214,8 @@ ApplicationContext* Application::getContext() {
 }
 
 void Application::run() {
+    lgr::lout.info("Working directory: " + std::filesystem::current_path().string());
+
     init();
     execute();
     shutdown();
