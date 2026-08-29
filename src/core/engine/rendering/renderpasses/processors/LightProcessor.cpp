@@ -182,6 +182,10 @@ static void generateDirectionalLightShadowMapMatrices(
             maxZ = std::max(maxZ, ls.z);
         }
 
+        // Extend the shadow volume backwards, along the light direction,
+        // so objects outside the camera cascade can still cast shadows.
+        maxZ += light->getShadowCasterDistance();
+
         glm::mat4 proj = glm::ortho(minX, maxX, minY, maxY, -maxZ, -minZ);
 
         GPUShadowMap map{};
@@ -407,7 +411,7 @@ void LightProcessor::prepareShadowData(
         totalCost -= currentCost - nextCost;
     }
 
-    if (directionalLight) { // Dodge scoring / adjusting logic for directional lights
+    if (directionalLight) {  // Dodge scoring / adjusting logic for directional lights
         scoredLights.insert(
             scoredLights.begin(), {directionalLight, 1.0f, 1.0f, directionalLightCascadeResolution, true}
         );
