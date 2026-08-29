@@ -30,18 +30,29 @@ namespace UI {
             if (ImGui::Button("Singleplayer", ImVec2(buttonWidth, buttonHeight))) {
                 navigateTo("WorldSelection");
             }
-            ImGui::SetCursorPos({centerX, startY + buttonHeight + padding});
+            ImGui::SetCursorPos({centerX, ImGui::GetCursorPosY() + padding});
             if (ImGui::Button("Settings", ImVec2(buttonWidth, buttonHeight))) {
                 navigateTo("SettingsMenu");
             }
-            ImGui::SetCursorPos({centerX, startY + 2 * (buttonHeight + padding)});
+            ImGui::SetCursorPos({centerX, ImGui::GetCursorPosY() + padding});
             if (ImGui::Button("About", ImVec2(buttonWidth, buttonHeight))) {
                 navigateTo("AboutScreen");
             }
-            ImGui::SetCursorPos({centerX, startY + 3 * (buttonHeight + padding)});
+            ImGui::SetCursorPos({centerX, ImGui::GetCursorPosY() + padding});
             if (ImGui::Button("Quit", ImVec2(buttonWidth, buttonHeight))) {
                 context->instance->gameState.quitGame = true;
             }
+        }
+        {
+            ScopedFont font(UI::manager().getFont(20));
+
+            const char* version = "v" APP_VERSION;
+            ImVec2 textSize = ImGui::CalcTextSize(version);
+            ImGui::SetCursorPos(
+                {ImGui::GetWindowWidth() - textSize.x - 20.0f, ImGui::GetWindowHeight() - textSize.y - 15.0f}
+            );
+
+            ImGui::TextDisabled("%s", version);
         }
         ImGui::End();
     }
