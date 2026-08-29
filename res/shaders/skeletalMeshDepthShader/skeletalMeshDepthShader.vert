@@ -3,8 +3,6 @@
 #define MAX_JOINTS 100
 
 layout(location = 0) in vec3 v_position;
-layout(location = 1) in vec2 v_uv;
-layout(location = 2) in vec3 v_normal;
 layout(location = 3) in uvec4 v_jointIndices;
 layout(location = 4) in vec4 v_jointWeights;
 
@@ -12,12 +10,7 @@ layout(std140) uniform JointMatrices {
     mat4 u_jointMatrices[MAX_JOINTS];
 };
 
-out vec3 position;
-out vec2 uv;
-out vec3 normal;
-
 uniform mat4 u_mvp;
-uniform mat4 u_model;
 
 void main() {
     // Each vertex is influenced by up to 4 joints
@@ -28,13 +21,7 @@ void main() {
         v_jointWeights.w * u_jointMatrices[v_jointIndices.w];
 
     vec4 skinnedPosition = skinMatrix * vec4(v_position, 1.0);
-    vec3 skinnedNormal = mat3(skinMatrix) * v_normal;
-
-    vec4 woldPosition = u_model * skinnedPosition;
 
     // Apply model view projection after skinning
     gl_Position = u_mvp * skinnedPosition;
-    position = woldPosition.xyz;
-    uv = v_uv;
-    normal = normalize(mat3(u_model) * skinnedNormal);
 }

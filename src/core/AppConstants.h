@@ -12,6 +12,7 @@ namespace Res {
         constexpr const char* SSAO_PASS = "res/shaders/SSAO_PassShader";
         constexpr const char* SSAO_BLUR = "res/shaders/SSAO_BlurShader";
         constexpr const char* SKELETAL_MESH = "res/shaders/skeletalMeshShader";
+        constexpr const char* SKELETAL_MESH_DEPTH = "res/shaders/skeletalMeshDepthShader";
         constexpr const char* TRANSPARENT = "res/shaders/transparencyShader";
         constexpr const char* RESOLVER = "res/shaders/resolverShader";
         constexpr const char* FXAA = "res/shaders/fxaaShader";

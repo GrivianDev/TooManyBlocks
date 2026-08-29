@@ -12,6 +12,7 @@
 #include "engine/rendering/Frustum.h"
 #include "engine/rendering/GLUtils.h"
 #include "engine/rendering/Renderer.h"
+#include "engine/rendering/SkeletalMesh.h"
 
 void ShadowRenderpass::prepare(
     RenderContext& context,
@@ -29,7 +30,7 @@ void ShadowRenderpass::prepare(
 
     // Depth offset to avoid shadow acne
     GLCALL(glEnable(GL_POLYGON_OFFSET_FILL));
-    GLCALL(glPolygonOffset(1.0f, 1.0f));
+    GLCALL(glPolygonOffset(2.0f, 1.0f));
 }
 
 void ShadowRenderpass::execute(
@@ -55,6 +56,9 @@ void ShadowRenderpass::execute(
             batch.first->bindForPass(PassType::ShadowPass, context);
 
             for (const Renderable* obj : batch.second) {
+                if (const SkeletalMesh* sMesh = dynamic_cast<const SkeletalMesh*>(obj)) {
+                    context.skInfo.jointMatrices = sMesh->getJointMatrices();
+                }
                 context.tInfo.meshTransform = obj->getRenderableTransform();
                 batch.first->bindForObjectDraw(PassType::ShadowPass, context);
                 obj->draw();

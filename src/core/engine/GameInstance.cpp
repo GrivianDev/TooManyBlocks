@@ -63,7 +63,7 @@ void GameInstance::initializeWorld(World* newWorld) {
 
         AssetManager* assets = Application::getContext()->assets;
 
-        PointLight* pointLight = scene.create<PointLight>(glm::vec3(1.0f), 1.0f, 5.0f);
+        PointLight* pointLight = scene.create<PointLight>(glm::vec3(1.0f), 1.0f, 6.5f);
         pointLight->setCastsShadows(true);
         pointLight->setShadowPriority(1);
         pointLight->getLocalTransform().setPosition({1.5, 7, 0.5});
@@ -86,11 +86,12 @@ void GameInstance::initializeWorld(World* newWorld) {
         directionalLight->getLocalTransform().lookAt({14, 4, -4});
 
         Future<Shader> simpleShader = assets->request<Shader>(Assets::Shader::SIMPLE);
+        Future<Shader> depthShader = assets->request<Shader>(Assets::Shader::DEPTH);
         Future<Shader> transparentShader = assets->request<Shader>(Assets::Shader::TRANSPARENT);
         Future<Texture> testBlockTexture = assets->request<Texture>(Assets::Texture::TESTBLOCK_TEXTURE);
 
         std::shared_ptr<Material> testMaterial1 = std::make_shared<SimpleMaterial>(
-            simpleShader, transparentShader, glm::vec3(0.0f), testBlockTexture
+            simpleShader, depthShader, glm::vec3(0.0f), testBlockTexture
         );
         std::shared_ptr<Material> testMaterial2 = std::make_shared<TransparentMaterial>(
             transparentShader, glm::vec4(0.5f, 0.5f, 0.0f, 0.8f)
@@ -108,7 +109,7 @@ void GameInstance::initializeWorld(World* newWorld) {
         StaticMesh* mesh3 = scene.create<StaticMesh>(testUnitBlockAsset, testMaterial3);
         mesh3->setName("MyTestRootBlock3");
 
-        mesh1->getLocalTransform().setPosition(glm::vec3(0.0f, 10.0f, 0.0f));
+        mesh1->getLocalTransform().setPosition(glm::vec3(-1.0f, 9.0f, 0.0f));
         mesh1->getLocalTransform().setScale(1.0f);
         mesh1->attachChild(mesh2, AttachRule::Full);
         mesh2->getLocalTransform().translate(glm::vec3(0.0f, 3.0f, 0.0f));
@@ -126,14 +127,25 @@ void GameInstance::initializeWorld(World* newWorld) {
         focusedBlockOutline->setLineWidth(3.5f);
 
         Future<Shader> skeletalShader = assets->request<Shader>(Assets::Shader::SKELETAL_MESH);
-        Future<Texture> skeletalTexture = assets->request<Texture>(Assets::Texture::HUMANOID_TEXTURE);
-        Future<SkeletalMesh::Asset> skeletalMeshAsset = assets->request<SkeletalMesh::Asset>(Assets::Model::HUMANOID);
-        SkeletalMesh* skeletalMesh = scene.create<SkeletalMesh>(
-            skeletalMeshAsset, std::make_shared<SkeletalMaterial>(skeletalShader, skeletalTexture)
+        Future<Shader> skeletalDepthShader = assets->request<Shader>(Assets::Shader::SKELETAL_MESH_DEPTH);
+        Future<Texture> humanoidTexture = assets->request<Texture>(Assets::Texture::HUMANOID_TEXTURE);
+        Future<SkeletalMesh::Asset> humanoidAsset = assets->request<SkeletalMesh::Asset>(Assets::Model::HUMANOID);
+        SkeletalMesh* skeletalMesh1 = scene.create<SkeletalMesh>(
+            humanoidAsset, std::make_shared<SkeletalMaterial>(skeletalShader, skeletalDepthShader, humanoidTexture)
         );
-        skeletalMesh->setName("MySkeletalMesh");
-        skeletalMesh->getLocalTransform().setPosition(glm::vec3(6.0f, 8.0f, 5.0f));
-        skeletalMesh->getLocalTransform().setScale(0.2f);
+        skeletalMesh1->setName("MySkeletalMesh1");
+        skeletalMesh1->getLocalTransform().setPosition({3, 6.5, -2});
+        skeletalMesh1->getLocalTransform().setScale(0.2f);
+
+        Future<Texture> cuteFlyTexture = assets->request<Texture>(Assets::Texture::TESTFLY_TEXTURE);
+        Future<SkeletalMesh::Asset> cuteFlyAsset = assets->request<SkeletalMesh::Asset>(Assets::Model::TESTFLY);
+        SkeletalMesh* skeletalMesh2 = scene.create<SkeletalMesh>(
+            cuteFlyAsset, std::make_shared<SkeletalMaterial>(skeletalShader, skeletalDepthShader, cuteFlyTexture)
+        );
+        skeletalMesh2->setName("MySkeletalMesh2");
+        skeletalMesh2->getLocalTransform().setPosition({-4, 8, -2});
+        skeletalMesh2->getLocalTransform().setScale(0.5f);
+        skeletalMesh2->getLocalTransform().lookAt(skeletalMesh1->getLocalTransform().getPosition());
 
         // Particles
         ParticleSystem* particles = scene.create<ParticleSystem>(std::vector<GenericGPUParticleModule>{
@@ -215,7 +227,7 @@ void GameInstance::update(float deltaTime) {
     m_world->updateChunks(m_player->getTransform().getPosition());
     m_world->update(deltaTime);
 
-    SkeletalMesh* skeletalMesh = static_cast<SkeletalMesh*>(m_world->scene().findByName("MySkeletalMesh"));
+    SkeletalMesh* skeletalMesh = static_cast<SkeletalMesh*>(m_world->scene().findByName("MySkeletalMesh1"));
     if (skeletalMesh && accumulatorToggle > 5.0f) {
         if (skeletalMesh->hasTag("ShouldRun")) {
             skeletalMesh->removeTag("ShouldRun");
@@ -285,6 +297,21 @@ void GameInstance::update(float deltaTime) {
 
         skeletalMesh->setAnimationController(std::move(controller));
     }
+
+    SkeletalMesh* fly = static_cast<SkeletalMesh*>(m_world->scene().findByName("MySkeletalMesh2"));
+    if (fly->isReady() && !fly->getAnimationController()) {
+        std::unique_ptr<AnimationController> controller = std::make_unique<AnimationController>(fly);
+
+        std::unique_ptr<AnimationClipPlayer> idlePlayer = std::make_unique<AnimationClipPlayer>();
+        idlePlayer->play(fly->getAnimation("Idle"), true);
+        idlePlayer->setSpeed(3.0f);
+
+        AnimationLayer& layer1 = controller->addLayer(std::move(idlePlayer));
+        layer1.setMask(BoneMask::wholeBody(fly->getNodeCount()));
+
+        fly->setAnimationController(std::move(controller));
+    }
+
     SceneComponent* blockOutline = m_world->scene().findByTag("FocusBlockOutline");
     blockOutline->setVisible(m_player->isFocusingBlock());
     blockOutline->getLocalTransform().setPosition(m_player->getFocusedBlock());

@@ -44,7 +44,7 @@ static void loadShaderWithIncludeProcessing(
 
             // Make sure this is actually "#include".
             if (afterInclude < lineEnd && *afterInclude != ' ' && *afterInclude != '\t') {
-                cursor = lineEnd < end ? lineEnd + 1 : end;
+                directiveStart = lineEnd < end ? lineEnd + 1 : end;
                 continue;
             }
 

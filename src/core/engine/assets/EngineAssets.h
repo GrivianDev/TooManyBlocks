@@ -14,6 +14,7 @@ namespace Assets {
         inline AssetHandle SSAO_PASS;
         inline AssetHandle SSAO_BLUR;
         inline AssetHandle SKELETAL_MESH;
+        inline AssetHandle SKELETAL_MESH_DEPTH;
         inline AssetHandle TRANSPARENT;
         inline AssetHandle RESOLVER;
         inline AssetHandle FXAA;

@@ -12,10 +12,6 @@ uniform sampler2D u_textureAtlas;
 uniform uint u_textureAtlasSize;
 uniform uint u_textureSize;
 
-float rand(vec3 iv) {
-    return fract(sin(dot(iv, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-}
-
 vec4 sampleFromTexAtlas(vec2 uv_coord) {
     float textureScale = float(u_textureSize) / float(u_textureAtlasSize);
     float texturesPerRow = float(u_textureAtlasSize) / float(u_textureSize);

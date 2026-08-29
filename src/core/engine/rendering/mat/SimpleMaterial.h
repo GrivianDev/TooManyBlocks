@@ -11,13 +11,13 @@
 class SimpleMaterial : public Material {
 private:
     Future<Shader> m_mainShader;
-    Future<Shader> m_trShader;
+    Future<Shader> m_depthShader;
     glm::vec3 m_color;
     Future<Texture> m_texture;
 
 public:
-    SimpleMaterial(Future<Shader> mainShader, Future<Shader> trShader, const glm::vec3& color, Future<Texture> texture = Future<Texture>())
-        : m_mainShader(mainShader), m_trShader(trShader), m_color(color), m_texture(texture) {}
+    SimpleMaterial(Future<Shader> mainShader, Future<Shader> depthShader, const glm::vec3& color, Future<Texture> texture = Future<Texture>())
+        : m_mainShader(mainShader), m_depthShader(depthShader), m_color(color), m_texture(texture) {}
 
     virtual ~SimpleMaterial() = default;
 

@@ -9,6 +9,7 @@
 #include "engine/GameInstance.h"
 #include "engine/rendering/Camera.h"
 #include "engine/rendering/GLUtils.h"
+#include "engine/rendering/SkeletalMesh.h"
 #include "engine/rendering/renderpasses/FXAARenderpass.h"
 #include "engine/rendering/renderpasses/FinalOutputpass.h"
 #include "engine/rendering/renderpasses/OpaqueRenderpass.h"
@@ -139,6 +140,32 @@ void Renderer::queryGraphicsInfo() {
     m_graphicsInfo.limits.maxViewportHeight = viewport[1];
 }
 
+void Renderer::updateRenderContext(const ApplicationContext& context) {
+    glm::uvec2 newScreenRes = glm::uvec2(context.state.screenWidth, context.state.screenHeight);
+    m_currentRenderContext.screenResChanged = newScreenRes != m_currentRenderContext.currScreenRes;
+    m_currentRenderContext.currScreenRes = newScreenRes;
+    m_currentRenderContext.deltaTime = context.instance->gameState.deltaTime;
+    m_currentRenderContext.elapsedTime = context.instance->gameState.elapsedGameTime;
+
+    m_currentRenderContext.ssaoInfo.enabled = getPass<SSAORenderpass>()->isEnabled();
+    m_currentRenderContext.fxaaInfo.enabled = getPass<FXAARenderpass>()->isEnabled();
+
+    m_renderResources.culledObjectsBuffer.reserve(m_objectsToRender.size());
+
+    // Update camera aspect ratio just in case it changed via resize of screen.
+    context.instance->m_player->getCamera()->setAspectRatio(
+        static_cast<float>(context.state.screenWidth) / static_cast<float>(context.state.screenHeight)
+    );
+}
+
+void Renderer::updateSkeletalMeshes() {
+    for (Renderable* obj : m_objectsToRender) {
+        if (SkeletalMesh* sMesh = dynamic_cast<SkeletalMesh*>(obj)) {
+            sMesh->updateJointMatrices();
+        }
+    }
+}
+
 void Renderer::init() {
     if (glewInit() != GLEW_OK) {
         throw std::runtime_error("Error initializing glew!");
@@ -201,22 +228,8 @@ void Renderer::submitRenderable(Renderable* obj) {
 }
 
 void Renderer::render(const ApplicationContext& context) {
-    // Update render context
-    glm::uvec2 newScreenRes = glm::uvec2(context.state.screenWidth, context.state.screenHeight);
-    m_currentRenderContext.screenResChanged = newScreenRes != m_currentRenderContext.currScreenRes;
-    m_currentRenderContext.currScreenRes = newScreenRes;
-    m_currentRenderContext.deltaTime = context.instance->gameState.deltaTime;
-    m_currentRenderContext.elapsedTime = context.instance->gameState.elapsedGameTime;
-
-    m_currentRenderContext.ssaoInfo.enabled = getPass<SSAORenderpass>()->isEnabled();
-    m_currentRenderContext.fxaaInfo.enabled = getPass<FXAARenderpass>()->isEnabled();
-
-    m_renderResources.culledObjectsBuffer.reserve(m_objectsToRender.size());
-
-    // Update camera aspect ratio just in case it changed via resize of screen.
-    context.instance->m_player->getCamera()->setAspectRatio(
-        static_cast<float>(context.state.screenWidth) / static_cast<float>(context.state.screenHeight)
-    );
+    updateRenderContext(context);
+    updateSkeletalMeshes();
 
     auto start = std::chrono::high_resolution_clock::now();
     for (const std::unique_ptr<Renderpass>& pass : m_renderpasses) {

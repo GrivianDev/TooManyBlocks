@@ -55,7 +55,7 @@ void ChunkMaterial::bindForPass(PassType passType, const RenderContext& context)
                 shadowAtlas->bindToUnit(atlasIndex + 2);
                 mainShader.setUniform("u_shadowMapAtlas[" + idxStr + "]", atlasIndex + 2);
             } else {
-                lgr::lout.error("Shadow map atlas for prio " + std::to_string(atlasIndex) + " not loaded for ChunkMaterial");
+                lgr::lout.error("Shadow map atlas for prio " + std::to_string(atlasIndex) + " not loaded");
             }
         }
     } else if (passType == PassType::ShadowPass) {

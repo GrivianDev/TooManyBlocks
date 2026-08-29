@@ -68,14 +68,13 @@ void registerAssetFactories(AssetManager& assets) {
     assets.registerFactory<CPUSkeletalMeshData>([](AssetHandle h, AssetManager& assets) {
         const FileSource& source = assets.getSource<FileSource>(h);
         return Future<CPUSkeletalMeshData>(
-            [source]() { return loadSkeletalMeshFromGlbFile(source.path, true); }
+                   [source]() { return loadSkeletalMeshFromGlbFile(source.path, true); }
         ).start();
     });
     assets.setCachePolicy<SkeletalMesh::Asset>(CachePolicy::GracePeriod, 3.0f);
     assets.registerFactory<SkeletalMesh::Asset>([](AssetHandle h, AssetManager& assets) {
         return build(assets.request<CPUSkeletalMeshData>(h));
     });
-
 }
 
 void setupAssets(AssetManager& assets) {
@@ -105,6 +104,9 @@ void setupAssets(AssetManager& assets) {
     );
     Assets::Shader::SKELETAL_MESH = assets.import<ShaderSource>(
         {Res::Shader::SKELETAL_MESH, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
+    );
+    Assets::Shader::SKELETAL_MESH_DEPTH = assets.import<ShaderSource>(
+        {Res::Shader::SKELETAL_MESH_DEPTH, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
     );
     Assets::Shader::TRANSPARENT = assets.import<ShaderSource>(
         {Res::Shader::TRANSPARENT, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}

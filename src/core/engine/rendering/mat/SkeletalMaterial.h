@@ -9,11 +9,12 @@
 class SkeletalMaterial : public Material {
 private:
     Future<Shader> m_mainShader;
+    Future<Shader> m_depthShader;
     Future<Texture> m_texture;
 
 public:
-    SkeletalMaterial(Future<Shader> mainShader, Future<Texture> texture)
-        : m_mainShader(mainShader), m_texture(texture) {}
+    SkeletalMaterial(Future<Shader> mainShader, Future<Shader> depthShader, Future<Texture> texture)
+        : m_mainShader(mainShader), m_depthShader(depthShader), m_texture(texture) {}
 
     virtual ~SkeletalMaterial() = default;
 

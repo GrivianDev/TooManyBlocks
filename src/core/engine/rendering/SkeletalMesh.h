@@ -58,6 +58,8 @@ public:
 
     inline Future<Asset>& getAssetHandle() { return m_asset; }
 
+    void updateJointMatrices();
+
     const UniformBuffer* getJointMatrices() const;
 
     size_t getNodeCount() const;

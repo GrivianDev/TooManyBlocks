@@ -50,8 +50,8 @@ const AnimationClip* SkeletalMesh::getAnimation(const std::string& name) const {
     return nullptr;
 }
 
-const UniformBuffer* SkeletalMesh::getJointMatrices() const {
-    if (!isReady()) return nullptr;
+void SkeletalMesh::updateJointMatrices() {
+    if (!isReady()) return;
 
     const std::vector<int>& jointNodeIndices = m_asset.value().jointNodeIndices;
 
@@ -66,6 +66,10 @@ const UniformBuffer* SkeletalMesh::getJointMatrices() const {
         jointMatrices.push_back(joint.getGlobalTransform().getModelMatrix() * bindMatrix);
     }
     m_instance.value().jointMatricesUBO.updateData(jointMatrices.data(), jointMatrices.size() * sizeof(glm::mat4));
+}
+
+const UniformBuffer* SkeletalMesh::getJointMatrices() const {
+    if (!isReady()) return nullptr;
     return &m_instance.value().jointMatricesUBO;
 }
 

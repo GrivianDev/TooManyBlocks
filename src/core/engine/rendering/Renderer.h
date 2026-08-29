@@ -174,6 +174,10 @@ private:
 
     void queryGraphicsInfo();
 
+    void updateRenderContext(const ApplicationContext& context);
+
+    void updateSkeletalMeshes();
+
 public:
     Renderer() : m_currentRenderContext{}, m_renderResources{} {}
 
