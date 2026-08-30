@@ -1,7 +1,7 @@
 #include "StaticMeshBuilder.h"
 
-#include "engine/blueprints/ChunkMeshBlueprint.h"
-#include "engine/blueprints/StaticMeshBlueprint.h"
+#include "engine/assets/meshcreate/ChunkMeshCreate.h"
+#include "engine/assets/meshcreate/StaticMeshCreate.h"
 
 Future<StaticMesh::Asset> build(const Future<CPURenderData<Vertex>>& cpuMesh) {
     Future<StaticMesh::Asset> meshSharedData(

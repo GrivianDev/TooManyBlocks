@@ -1,9 +1,5 @@
 #include "AnimationLayer.h"
 
-#include <algorithm>
-
-#include "Logger.h"
-
 AnimationLayer::AnimationLayer(size_t nodeCount, std::unique_ptr<AnimationNode> node)
     : m_node(std::move(node)), m_layerPose(nodeCount), m_mask(nodeCount), m_weight(1.0f) {}
 

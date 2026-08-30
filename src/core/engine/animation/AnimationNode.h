@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "datatypes/Transform.h"
 #include "engine/Updatable.h"
+#include "engine/scene/Transform.h"
 
 class AnimationNode : public Updatable {
 public:

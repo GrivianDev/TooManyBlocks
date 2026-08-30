@@ -41,7 +41,9 @@ namespace UI {
 
     inline bool navigateTo(const std::string& widgetName) { return _manager->navigateTo(widgetName); }
 
-    inline bool navigateToReplacement(const std::string& widgetName) { return _manager->navigateToReplacement(widgetName); }
+    inline bool navigateToReplacement(const std::string& widgetName) {
+        return _manager->navigateToReplacement(widgetName);
+    }
 
     inline bool navigateBackTo(const std::string& widgetName) { return _manager->navigateBackTo(widgetName); }
 

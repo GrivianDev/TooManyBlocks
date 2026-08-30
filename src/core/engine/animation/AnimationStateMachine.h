@@ -5,10 +5,9 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "datatypes/Transform.h"
+#include "engine/scene/Transform.h"
 #include "engine/animation/AnimationNode.h"
-#include "engine/rendering/SkeletalMesh.h"
+#include "engine/scene/renderables/SkeletalMesh.h"
 
 class AnimationStateMachine : public AnimationNode {
 public:

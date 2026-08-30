@@ -1,8 +1,6 @@
 #include "TextureLoader.h"
 
-#include <stdexcept>
 #include <stb_image.h>
-#include "Logger.h"
 
 #define DESIRED_CHANNELS 4
 

@@ -5,7 +5,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-#include "AppConstants.h"
+#include "engine/assets/AssetPaths.h"
 
 UI::Manager::Manager() : m_currentWidget(nullptr), m_nextWidget(nullptr) {}
 

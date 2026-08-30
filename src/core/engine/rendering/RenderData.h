@@ -1,12 +1,10 @@
 #ifndef TOOMANYBLOCKS_RENDERDATA_H
 #define TOOMANYBLOCKS_RENDERDATA_H
 
-#include <vector>
-
 #include "engine/geometry/BoundingVolume.h"
-#include "engine/rendering/lowlevelapi/IndexBuffer.h"
-#include "engine/rendering/lowlevelapi/VertexArray.h"
-#include "engine/rendering/lowlevelapi/VertexBuffer.h"
+#include "engine/rendering/opengl/IndexBuffer.h"
+#include "engine/rendering/opengl/VertexArray.h"
+#include "engine/rendering/opengl/VertexBuffer.h"
 
 class RenderData {
 public:

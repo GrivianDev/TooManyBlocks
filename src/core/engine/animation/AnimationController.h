@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "engine/Updatable.h"
-#include "engine/animation/AnimationController.h"
 #include "engine/animation/AnimationLayer.h"
 
 class AnimationController : public Updatable {

@@ -183,7 +183,7 @@ public:
         return holder->source;
     }
 
-     // Registered factories should construct an already started future
+    // Registered factories should construct an already started future
     template <typename T>
     void registerFactory(std::function<Future<T>(AssetHandle, AssetManager&)> factory) {
         std::lock_guard<std::mutex> lock(m_mtx);

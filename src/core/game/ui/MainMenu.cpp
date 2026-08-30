@@ -1,0 +1,59 @@
+#include "MainMenu.h"
+
+#include <imgui.h>
+
+#include "Application.h"
+#include "game/GameInstance.h"
+
+namespace UI {
+    void MainMenu::render() {
+        ApplicationContext* context = Application::getContext();
+
+        ImGuiIO& io = ImGui::GetIO();
+
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+                                        ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+        UI::Util::MakeNextWindowFullscreen();
+        ImGui::Begin("Main Menu", NULL, window_flags);
+        {
+            ScopedFont font(UI::manager().getFont(55));
+
+            float buttonWidth = 400.0f;
+            float buttonHeight = 75.0f;
+            float padding = 10.0f;
+            float totalHeight = (4 * buttonHeight) + (3 * padding);   // Total height of all buttons + padding
+            float startY = (io.DisplaySize.y - totalHeight) / 2.0f;   // Center Y position
+            float centerX = (io.DisplaySize.x - buttonWidth) / 2.0f;  // Center X position
+            ImGui::SetCursorPos({centerX, startY});
+            if (ImGui::Button("Singleplayer", ImVec2(buttonWidth, buttonHeight))) {
+                navigateTo("WorldSelection");
+            }
+            ImGui::SetCursorPos({centerX, ImGui::GetCursorPosY() + padding});
+            if (ImGui::Button("Settings", ImVec2(buttonWidth, buttonHeight))) {
+                navigateTo("SettingsMenu");
+            }
+            ImGui::SetCursorPos({centerX, ImGui::GetCursorPosY() + padding});
+            if (ImGui::Button("About", ImVec2(buttonWidth, buttonHeight))) {
+                navigateTo("AboutScreen");
+            }
+            ImGui::SetCursorPos({centerX, ImGui::GetCursorPosY() + padding});
+            if (ImGui::Button("Quit", ImVec2(buttonWidth, buttonHeight))) {
+                context->instance->gameState.quitGame = true;
+            }
+        }
+        {
+            ScopedFont font(UI::manager().getFont(20));
+
+            const char* version = "v" APP_VERSION;
+            ImVec2 textSize = ImGui::CalcTextSize(version);
+            ImGui::SetCursorPos(
+                {ImGui::GetWindowWidth() - textSize.x - 20.0f, ImGui::GetWindowHeight() - textSize.y - 15.0f}
+            );
+
+            ImGui::TextDisabled("%s", version);
+        }
+        ImGui::End();
+    }
+}  // namespace UI

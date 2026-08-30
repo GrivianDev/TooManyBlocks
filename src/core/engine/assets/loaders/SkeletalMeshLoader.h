@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 
-#include "engine/rendering/RenderData.h"
 #include "engine/rendering/Vertices.h"
 #include "engine/assets/cpu/CPUSkeletalMeshData.h"
 

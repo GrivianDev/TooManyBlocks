@@ -1,26 +1,20 @@
 #include "Application.h"
 
-#include <stdexcept>
 #include <filesystem>
+#include <stdexcept>
 
-#include "AppConstants.h"
 #include "Logger.h"
-#include "engine/GameInstance.h"
 #include "engine/assets/AssetManager.h"
 #include "engine/assets/AssetSetup.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/rendering/renderpasses/FXAARenderpass.h"
-#include "engine/rendering/renderpasses/SSAORenderpass.h"
-#include "engine/ui/AboutScreen.h"
-#include "engine/ui/GameOverlay.h"
-#include "engine/ui/MainMenu.h"
-#include "engine/ui/PauseMenu.h"
-#include "engine/ui/SettingsMenu.h"
+#include "engine/rendering/passes/FXAARenderpass.h"
+#include "engine/rendering/passes/SSAORenderpass.h"
 #include "engine/ui/Ui.h"
-#include "engine/ui/WorldSelection.h"
 #include "foundation/threading/Future.h"
 #include "foundation/threading/ThreadPool.h"
 #include "foundation/time/Timer.h"
+#include "game/GameInstance.h"
+#include "game/ui/GameUISetup.h"
 #include "platform/audio/AudioEngine.h"
 #include "platform/input/impl/GLFWInputManager.h"
 #include "platform/window/impl/GLFWWindowManager.h"
@@ -109,15 +103,7 @@ void Application::init() {
     context->renderer->getPass<SSAORenderpass>()->setEnabled(context->instance->gameSettings.graphics.ambientOcclusion);
     context->renderer->getPass<FXAARenderpass>()->setEnabled(context->instance->gameSettings.graphics.fxaa);
 
-    UI::init();
-
-    UI::registerWidget<UI::MainMenu>("MainMenu");
-    UI::registerWidget<UI::SettingsMenu>("SettingsMenu");
-    UI::registerWidget<UI::GameOverlay>("GameOverlay");
-    UI::registerWidget<UI::WorldSelection>("WorldSelection");
-    UI::registerWidget<UI::PauseMenu>("PauseMenu");
-    UI::registerWidget<UI::AboutScreen>("AboutScreen");
-    UI::navigateTo("MainMenu");
+    GameUI::setup();
 
     // Set initial output device
     if (context->audioEngine->loadDevices()) {

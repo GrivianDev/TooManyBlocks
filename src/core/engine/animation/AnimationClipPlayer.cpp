@@ -1,7 +1,5 @@
 #include "AnimationClipPlayer.h"
 
-#include <cmath>
-
 AnimationClipPlayer::AnimationClipPlayer()
     : m_clip(nullptr), m_time(0.0f), m_speed(1.0f), m_looping(false), m_finished(false), m_paused(false) {}
 

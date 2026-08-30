@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "AppConstants.h"
+#include "engine/assets/AssetPaths.h"
 #include "engine/assets/EngineAssets.h"
 #include "engine/assets/builders/ShaderBuilder.h"
 #include "engine/assets/builders/SkeletalMeshBuilder.h"
@@ -13,9 +13,9 @@
 #include "engine/assets/loaders/SkeletalMeshLoader.h"
 #include "engine/assets/loaders/StaticMeshLoader.h"
 #include "engine/assets/loaders/TextureLoader.h"
-#include "engine/rendering/lowlevelapi/Shader.h"
-#include "engine/rendering/lowlevelapi/Texture.h"
-#include "engine/rendering/lowlevelapi/TransformFeedbackShader.h"
+#include "engine/rendering/opengl/Shader.h"
+#include "engine/rendering/opengl/Texture.h"
+#include "engine/rendering/opengl/TransformFeedbackShader.h"
 
 struct FileSource {
     std::string path;

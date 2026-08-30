@@ -3,8 +3,8 @@
 
 #include <memory>
 
-#include "datatypes/Transform.h"
 #include "engine/animation/Timeline.h"
+#include "engine/scene/Transform.h"
 
 enum class AnimationProperty {
     Translation,

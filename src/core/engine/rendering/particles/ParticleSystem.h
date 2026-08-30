@@ -2,15 +2,14 @@
 #define TOOMANYBLOCKS_PARTICLESYSTEM_H
 
 #include <glm/glm.hpp>
-#include <tuple>
 
 #include "engine/Updatable.h"
 #include "engine/geometry/BoundingVolume.h"
-#include "engine/rendering/Renderable.h"
-#include "engine/rendering/lowlevelapi/UniformBuffer.h"
-#include "engine/rendering/lowlevelapi/VertexArray.h"
-#include "engine/rendering/lowlevelapi/VertexBuffer.h"
+#include "engine/rendering/opengl/UniformBuffer.h"
+#include "engine/rendering/opengl/VertexArray.h"
+#include "engine/rendering/opengl/VertexBuffer.h"
 #include "engine/rendering/particles/ParticleModules.h"
+#include "engine/scene/renderables/Renderable.h"
 
 struct Particle {
     glm::vec4 color;
@@ -24,6 +23,12 @@ struct Particle {
 
 class ParticleSystem : public Renderable, public Updatable {
 private:
+    struct BurstSpawn {
+        float delay;
+        float amount;
+        bool fired;
+    };
+
     VertexArray m_tfFeedbackVAO1;
     VertexArray m_tfFeedbackVAO2;
     VertexBuffer m_instanceDataVBO1;
@@ -40,7 +45,7 @@ private:
     float m_accumulatedTime;
     float m_spawnAccumulator;
     float m_spawnRate;
-    std::vector<std::tuple<float, float, bool>> m_burstSpawns;  // Delay, Amount, Fired flag
+    std::vector<BurstSpawn> m_burstSpawns;
 
     unsigned int m_spawnCount;
     unsigned int m_particleSpawnOffset;

@@ -1,6 +1,6 @@
 #include "AnimationController.h"
 
-#include "engine/rendering/SkeletalMesh.h"
+#include "engine/scene/renderables/SkeletalMesh.h"
 
 void AnimationController::evaluate() {
     m_evaluationTransforms.resize(m_owner->getNodeCount());

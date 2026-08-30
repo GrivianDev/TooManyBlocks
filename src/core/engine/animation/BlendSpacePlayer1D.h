@@ -4,10 +4,9 @@
 #include <functional>
 #include <memory>
 #include <vector>
-
-#include "datatypes/Transform.h"
+#include "engine/scene/Transform.h"
 #include "engine/animation/AnimationNode.h"
-#include "engine/rendering/SkeletalMesh.h"
+#include "engine/scene/renderables/SkeletalMesh.h"
 
 class BlendSpacePlayer1D : public AnimationNode {
 public:

@@ -2,7 +2,8 @@
 #define TOOMANYBLOCKS_UIUTIL_H
 
 #include <glm/vec3.hpp>
-#include "engine/rendering/renderpasses/DebugReport.h"
+
+#include "engine/rendering/passes/debug/DebugReport.h"
 
 namespace UI::Util {
     void CenterPopup();

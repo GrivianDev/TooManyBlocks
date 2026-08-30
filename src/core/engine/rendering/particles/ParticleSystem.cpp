@@ -6,7 +6,7 @@
 #include <string>
 
 #include "engine/rendering/GLUtils.h"
-#include "engine/rendering/lowlevelapi/VertexBufferLayout.h"
+#include "engine/rendering/opengl/VertexBufferLayout.h"
 
 #define MAX_PARTICLE_MODULES 100
 
@@ -177,9 +177,8 @@ void ParticleSystem::compute() {
 void ParticleSystem::reset() {
     m_accumulatedTime = 0.0f;
     m_spawnAccumulator = 0.0f;
-    for (auto& el : m_burstSpawns) {
-        bool& fired = std::get<2>(el);
-        fired = false;
+    for (BurstSpawn& bSpawn : m_burstSpawns) {
+        bSpawn.fired = false;
     }
 }
 
@@ -188,11 +187,10 @@ void ParticleSystem::update(float deltaTime) {
         m_accumulatedTime += deltaTime;
         m_spawnAccumulator += deltaTime * m_spawnRate;
 
-        for (auto& el : m_burstSpawns) {
-            bool& fired = std::get<2>(el);
-            if (!fired && std::get<0>(el) < m_accumulatedTime) {
-                m_spawnAccumulator += std::get<1>(el);
-                fired = true;
+        for (BurstSpawn& bSpawn : m_burstSpawns) {
+            if (!bSpawn.fired && bSpawn.delay < m_accumulatedTime) {
+                m_spawnAccumulator += bSpawn.amount;
+                bSpawn.fired = true;
             }
         }
 

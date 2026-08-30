@@ -5,15 +5,15 @@
 #include <memory>
 #include <vector>
 
-#include "compatability/Compatability.h"
-#include "engine/env/lights/Light.h"
-#include "engine/rendering/Renderable.h"
-#include "engine/rendering/lowlevelapi/Texture.h"
-#include "engine/rendering/lowlevelapi/UniformBuffer.h"
-#include "engine/rendering/lowlevelapi/VertexArray.h"
-#include "engine/rendering/lowlevelapi/VertexBuffer.h"
-#include "engine/rendering/renderpasses/DebugReport.h"
-#include "engine/rendering/renderpasses/Renderpass.h"
+#include "engine/rendering/opengl/Texture.h"
+#include "engine/rendering/opengl/UniformBuffer.h"
+#include "engine/rendering/opengl/VertexArray.h"
+#include "engine/rendering/opengl/VertexBuffer.h"
+#include "engine/rendering/passes/Renderpass.h"
+#include "engine/rendering/passes/debug/DebugReport.h"
+#include "engine/scene/lights/Light.h"
+#include "engine/scene/renderables/Renderable.h"
+#include "foundation/compatability/Compatability.h"
 
 struct ApplicationContext;
 

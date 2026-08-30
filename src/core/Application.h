@@ -7,10 +7,6 @@
 #include "platform/input/InputManager.h"
 #include "platform/window/WindowManager.h"
 
-#ifndef APP_NAME
-#define APP_NAME "Unspecified"
-#endif
-
 struct ApplicationContext {
     struct AppState {
         unsigned int screenWidth;

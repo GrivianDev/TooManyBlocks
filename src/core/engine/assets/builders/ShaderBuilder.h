@@ -2,8 +2,8 @@
 #define TOOMANYBLOCKS_SHADERBUILDER_H
 
 #include "engine/assets/cpu/CPUShader.h"
-#include "engine/rendering/lowlevelapi/Shader.h"
-#include "engine/rendering/lowlevelapi/TransformFeedbackShader.h"
+#include "engine/rendering/opengl/Shader.h"
+#include "engine/rendering/opengl/TransformFeedbackShader.h"
 #include "foundation/threading/Future.h"
 
 Future<Shader> build(const Future<CPUShader>& cpuShader, const ShaderDefines& defines = ShaderDefines());

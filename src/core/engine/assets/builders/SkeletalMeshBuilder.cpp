@@ -1,6 +1,6 @@
 #include "SkeletalMeshBuilder.h"
 
-#include "engine/blueprints/SkeletalMeshBlueprint.h"
+#include "engine/assets/meshcreate/SkeletalMeshCreate.h"
 
 Future<SkeletalMesh::Asset> build(const Future<CPUSkeletalMeshData>& cpuMesh) {
     Future<SkeletalMesh::Asset> sharedMeshData(

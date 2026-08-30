@@ -322,8 +322,10 @@ CPUSkeletalMeshData loadSkeletalMeshFromGlbFile(const std::string& glbFilePath, 
                             compType = static_cast<unsigned int>(indexAccessor["componentType"].toInt());
                             if (indexAccessor["type"].toString() != "SCALAR") {
                                 throw std::runtime_error("Indexbuffer accessor type is not SCALAR");
-                            } else if (compType != GL_UNSIGNED_BYTE && compType != GL_UNSIGNED_SHORT &&
-                                       compType != GL_UNSIGNED_INT) {
+                            } else if (
+                                compType != GL_UNSIGNED_BYTE && compType != GL_UNSIGNED_SHORT &&
+                                compType != GL_UNSIGNED_INT
+                            ) {
                                 throw std::runtime_error("Indexbuffer accessor component type is not supported");
                             }
 
