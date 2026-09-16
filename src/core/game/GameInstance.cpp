@@ -15,12 +15,7 @@
 #include "engine/assets/EngineAssets.h"
 #include "engine/geometry/BoundingVolume.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/rendering/material/ChunkMaterial.h"
-#include "engine/rendering/material/LineMaterial.h"
-#include "engine/rendering/material/ParticleMaterial.h"
-#include "engine/rendering/material/SimpleMaterial.h"
-#include "engine/rendering/material/SkeletalMaterial.h"
-#include "engine/rendering/material/TransparentMaterial.h"
+#include "engine/rendering/material/Material.h"
 #include "engine/rendering/opengl/Shader.h"
 #include "engine/rendering/opengl/Texture.h"
 #include "engine/rendering/opengl/TransformFeedbackShader.h"
@@ -85,28 +80,30 @@ void GameInstance::initializeWorld(World* newWorld) {
         directionalLight->getLocalTransform().setPosition({15, 8, 0});
         directionalLight->getLocalTransform().lookAt({14, 4, -4});
 
-        Future<Shader> simpleShader = assets->request<Shader>(Assets::Shader::SIMPLE);
-        Future<Shader> depthShader = assets->request<Shader>(Assets::Shader::DEPTH);
-        Future<Shader> transparentShader = assets->request<Shader>(Assets::Shader::TRANSPARENT);
-        Future<Texture> testBlockTexture = assets->request<Texture>(Assets::Texture::TESTBLOCK_TEXTURE);
+        std::shared_ptr<Material> testBlockMaterial1 = std::make_shared<Material>();
+        testBlockMaterial1->baseColorTexture = assets->request<Texture>(Assets::Texture::TESTBLOCK_TEXTURE);
+        testBlockMaterial1->occludes = true;
 
-        std::shared_ptr<Material> testMaterial1 = std::make_shared<SimpleMaterial>(
-            simpleShader, depthShader, glm::vec3(0.0f), testBlockTexture
-        );
-        std::shared_ptr<Material> testMaterial2 = std::make_shared<TransparentMaterial>(
-            transparentShader, glm::vec4(0.5f, 0.5f, 0.0f, 0.8f)
-        );
-        std::shared_ptr<Material> testMaterial3 = std::make_shared<TransparentMaterial>(
-            transparentShader, glm::vec4(0.2f, 0.1f, 0.7f, 0.4f)
-        );
+        std::shared_ptr<Material> testBlockMaterial2 = std::make_shared<Material>();
+        testBlockMaterial2->surface = MaterialSurface::Transparent;
+        testBlockMaterial2->baseColor = glm::vec4(1, 0, 0, 0.5);
+        testBlockMaterial2->castShadows = false;
+        testBlockMaterial2->occludes = false;
+
+        std::shared_ptr<Material> testBlockMaterial3 = std::make_shared<Material>();
+        testBlockMaterial3->surface = MaterialSurface::Transparent;
+        testBlockMaterial3->baseColor = glm::vec4(0, 1, 0, 0.35);
+        testBlockMaterial3->castShadows = false;
+        testBlockMaterial3->occludes = false;
+
         Future<StaticMesh::Asset> testUnitBlockAsset = assets->request<StaticMesh::Asset>(
             Assets::Model::TEST_UNIT_BLOCK
         );
-        StaticMesh* mesh1 = scene.create<StaticMesh>(testUnitBlockAsset, testMaterial1);
+        StaticMesh* mesh1 = scene.create<StaticMesh>(testUnitBlockAsset, testBlockMaterial1);
         mesh1->setName("MyTestRootBlock1");
-        StaticMesh* mesh2 = scene.create<StaticMesh>(testUnitBlockAsset, testMaterial2);
+        StaticMesh* mesh2 = scene.create<StaticMesh>(testUnitBlockAsset, testBlockMaterial2);
         mesh2->setName("MyTestRootBlock2");
-        StaticMesh* mesh3 = scene.create<StaticMesh>(testUnitBlockAsset, testMaterial3);
+        StaticMesh* mesh3 = scene.create<StaticMesh>(testUnitBlockAsset, testBlockMaterial3);
         mesh3->setName("MyTestRootBlock3");
 
         mesh1->getLocalTransform().setPosition(glm::vec3(-1.0f, 9.0f, 0.0f));
@@ -117,31 +114,34 @@ void GameInstance::initializeWorld(World* newWorld) {
         mesh2->attachChild(mesh3, AttachRule::Full);
         mesh3->getLocalTransform().translate(glm::vec3(0.0f, 1.0f, 1.0f));
 
-        Future<Shader> lineShader = assets->request<Shader>(Assets::Shader::LINE);
-
+        std::shared_ptr<Material> focusedBlockOutlineMaterial = std::make_shared<Material>();
+        focusedBlockOutlineMaterial->lit = false;
+        focusedBlockOutlineMaterial->castShadows = false;
+        focusedBlockOutlineMaterial->baseColor = glm::vec4(0.1f, 0.1f, 0.1f, 0.5f);
         Wireframe* focusedBlockOutline = scene.create<Wireframe>(
             Wireframe::fromBoundigBox({glm::vec3(-0.005), glm::vec3(1.005)})
         );
         focusedBlockOutline->addTag("FocusBlockOutline");
-        focusedBlockOutline->assignMaterial(std::make_shared<LineMaterial>(lineShader, glm::vec3(0.05, 0.05, 0.05)));
+        focusedBlockOutline->assignMaterial(focusedBlockOutlineMaterial);
         focusedBlockOutline->setLineWidth(3.5f);
 
-        Future<Shader> skeletalShader = assets->request<Shader>(Assets::Shader::SKELETAL_MESH);
-        Future<Shader> skeletalDepthShader = assets->request<Shader>(Assets::Shader::SKELETAL_MESH_DEPTH);
-        Future<Texture> humanoidTexture = assets->request<Texture>(Assets::Texture::HUMANOID_TEXTURE);
+        std::shared_ptr<Material> humanoidMaterial = std::make_shared<Material>();
+        humanoidMaterial->baseColorTexture = assets->request<Texture>(Assets::Texture::HUMANOID_TEXTURE);
+        humanoidMaterial->castShadows = true;
+        humanoidMaterial->occludes = true;
+        humanoidMaterial->lit = true;
+
         Future<SkeletalMesh::Asset> humanoidAsset = assets->request<SkeletalMesh::Asset>(Assets::Model::HUMANOID);
-        SkeletalMesh* skeletalMesh1 = scene.create<SkeletalMesh>(
-            humanoidAsset, std::make_shared<SkeletalMaterial>(skeletalShader, skeletalDepthShader, humanoidTexture)
-        );
+        SkeletalMesh* skeletalMesh1 = scene.create<SkeletalMesh>(humanoidAsset, humanoidMaterial);
         skeletalMesh1->setName("MySkeletalMesh1");
         skeletalMesh1->getLocalTransform().setPosition({3, 6.5, -2});
         skeletalMesh1->getLocalTransform().setScale(0.2f);
-
-        Future<Texture> cuteFlyTexture = assets->request<Texture>(Assets::Texture::TESTFLY_TEXTURE);
+        
+        std::shared_ptr<Material> flyMaterial = std::make_shared<Material>();
+        flyMaterial->baseColorTexture = assets->request<Texture>(Assets::Texture::TESTFLY_TEXTURE);
+        flyMaterial->occludes = true;
         Future<SkeletalMesh::Asset> cuteFlyAsset = assets->request<SkeletalMesh::Asset>(Assets::Model::TESTFLY);
-        SkeletalMesh* skeletalMesh2 = scene.create<SkeletalMesh>(
-            cuteFlyAsset, std::make_shared<SkeletalMaterial>(skeletalShader, skeletalDepthShader, cuteFlyTexture)
-        );
+        SkeletalMesh* skeletalMesh2 = scene.create<SkeletalMesh>(cuteFlyAsset, flyMaterial);
         skeletalMesh2->setName("MySkeletalMesh2");
         skeletalMesh2->getLocalTransform().setPosition({-4, 8, -2});
         skeletalMesh2->getLocalTransform().setScale(0.5f);
@@ -162,14 +162,11 @@ void GameInstance::initializeWorld(World* newWorld) {
                 {{0.0f, glm::vec3(1, 1, 0.5)}, {0.5f, glm::vec3(0.5, 1, 0.5)}, {1.0f, glm::vec3(0, 0.5, 1)}}
             ),
         });
-        Future<Texture> blockAtlasTexture = assets->request<Texture>(Assets::Texture::BLOCK_TEX_ATLAS);
-        Future<TransformFeedbackShader> particleTfShader = assets->request<TransformFeedbackShader>(
-            Assets::Shader::PARTICLE_TF
-        );
-        Future<Shader> particleShader = assets->request<Shader>(Assets::Shader::PARTICLE);
-        particles->assignMaterial(
-            std::make_shared<ParticleMaterial>(particleShader, particleTfShader, blockAtlasTexture)
-        );
+        std::shared_ptr<Material> particleMaterial = std::make_shared<Material>();
+        particleMaterial->baseColorTexture = assets->request<Texture>(Assets::Texture::BLOCK_TEX_ATLAS);
+        particleMaterial->lit = false;
+        particleMaterial->castShadows = false;
+        particles->assignMaterial(particleMaterial);
         particles->getLocalTransform().setPosition(glm::vec3(10.0f, 12.0f, 5.0f));
     }
 }

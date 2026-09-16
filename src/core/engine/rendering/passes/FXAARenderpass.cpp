@@ -22,7 +22,7 @@ void FXAARenderpass::prepare(RenderContext& context, RenderResources& resources,
 
 void FXAARenderpass::execute(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
     m_fxaaShader.use();
-    context.resolverInfo.output->bindToUnit(0);
+    context.resolver.output->bindToUnit(0);
     m_fxaaShader.setUniform("u_inputTexture", 0);
     m_fxaaShader.setUniform("u_texelSize", 1.0f / glm::vec2(context.currScreenRes.x, context.currScreenRes.y));
 
@@ -31,11 +31,12 @@ void FXAARenderpass::execute(RenderContext& context, RenderResources& resources,
 
 void FXAARenderpass::cleanup(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
     GLCALL(glEnable(GL_DEPTH_TEST));
-    context.fxaaInfo.output = m_fxaaBuffer.getAttachedTextures().at(0).get();
+    context.fxaa.output = m_fxaaBuffer.getAttachedTextures().at(0).get();
 }
 
-FXAARenderpass::FXAARenderpass() {
-    CPUShader cpuShader = loadShaderFromFile(Res::Shader::FXAA, ShaderLoadOption::VertexAndFragment);
+FXAARenderpass::FXAARenderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
+    : Renderpass(shaderManager, binder) {
+    CPUShader cpuShader = loadShaderPackFromDirectory(Res::Shader::FXAA, ShaderLoadOption::VertexAndFragment);
     m_fxaaShader = Shader::create(cpuShader.vertexShader, cpuShader.fragmentShader);
     m_fxaaBuffer = FrameBuffer::create();
 }

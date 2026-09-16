@@ -6,15 +6,15 @@
 
 Camera::Camera(float fovy, float aspectRatio) : m_fovy(fovy), m_aspectRatio(aspectRatio), m_viewDistance(500.0f) {}
 
-glm::mat4 Camera::getProjectionMatrix() {
+glm::mat4 Camera::getProjectionMatrix() const {
     return glm::perspective(glm::radians(m_fovy), m_aspectRatio, 0.1f, m_viewDistance);
 }
 
-glm::mat4 Camera::getViewMatrix() {
+glm::mat4 Camera::getViewMatrix() const {
     Transform tr = getGlobalTransform();
     glm::vec3 position = tr.getPosition();
 
     return glm::lookAt(position, position + tr.getForward(), tr.getUp());
 }
 
-glm::mat4 Camera::getViewProjMatrix() { return getProjectionMatrix() * getViewMatrix(); }
+glm::mat4 Camera::getViewProjMatrix() const { return getProjectionMatrix() * getViewMatrix(); }

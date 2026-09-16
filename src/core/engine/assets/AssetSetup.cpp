@@ -42,7 +42,7 @@ void registerAssetFactories(AssetManager& assets) {
 
     assets.registerFactory<CPUShader>([](AssetHandle h, AssetManager& assets) {
         const ShaderSource& source = assets.getSource<ShaderSource>(h);
-        return Future<CPUShader>([source]() { return loadShaderFromFile(source.path, source.option); }).start();
+        return Future<CPUShader>([source]() { return loadShaderPackFromDirectory(source.path, source.option); }).start();
     });
     assets.setCachePolicy<Shader>(CachePolicy::GracePeriod, 3.0f);
     assets.registerFactory<Shader>([](AssetHandle h, AssetManager& assets) {
@@ -78,53 +78,17 @@ void registerAssetFactories(AssetManager& assets) {
 }
 
 void setupAssets(AssetManager& assets) {
-    Assets::Shader::CHUNK_DEPTH = assets.import<ShaderSource>(
-        {Res::Shader::CHUNK_DEPTH, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
-    Assets::Shader::CHUNK_SSAO_GBUFFER = assets.import<ShaderSource>(
-        {Res::Shader::CHUNK_SSAO_GBUFFER, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
-    Assets::Shader::CHUNK = assets.import<ShaderSource>(
-        {Res::Shader::CHUNK, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
-    Assets::Shader::SIMPLE = assets.import<ShaderSource>(
-        {Res::Shader::SIMPLE, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
-    Assets::Shader::DEPTH = assets.import<ShaderSource>(
-        {Res::Shader::DEPTH, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
-    Assets::Shader::LINE = assets.import<ShaderSource>(
-        {Res::Shader::LINE, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
     Assets::Shader::SSAO_PASS = assets.import<ShaderSource>(
         {Res::Shader::SSAO_PASS, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
     );
     Assets::Shader::SSAO_BLUR = assets.import<ShaderSource>(
         {Res::Shader::SSAO_BLUR, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
     );
-    Assets::Shader::SKELETAL_MESH = assets.import<ShaderSource>(
-        {Res::Shader::SKELETAL_MESH, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
-    Assets::Shader::SKELETAL_MESH_DEPTH = assets.import<ShaderSource>(
-        {Res::Shader::SKELETAL_MESH_DEPTH, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
-    Assets::Shader::TRANSPARENT = assets.import<ShaderSource>(
-        {Res::Shader::TRANSPARENT, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
     Assets::Shader::RESOLVER = assets.import<ShaderSource>(
         {Res::Shader::RESOLVER, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
     );
     Assets::Shader::FXAA = assets.import<ShaderSource>(
         {Res::Shader::FXAA, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
-    Assets::Shader::PARTICLE = assets.import<ShaderSource>(
-        {Res::Shader::PARTICLE, {}, ShaderDefines(), ShaderLoadOption::VertexAndFragment}
-    );
-    Assets::Shader::PARTICLE_TF = assets.import<ShaderSource>(
-        {Res::Shader::PARTICLE_TF,
-         {"tf_color", "tf_velocity", "tf_position", "tf_timeToLive", "tf_initialTimeToLive", "tf_size", "tf_metadata"},
-         ShaderDefines(),
-         ShaderLoadOption::VertexOnly}
     );
 
     Assets::Texture::BLOCK_TEX_ATLAS = assets.import<FileSource>({Res::Texture::BLOCK_TEX_ATLAS});

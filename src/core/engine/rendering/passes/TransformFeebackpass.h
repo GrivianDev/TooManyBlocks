@@ -6,32 +6,23 @@
 #include "engine/rendering/passes/Renderpass.h"
 
 class TransformFeedbackpass : public Renderpass {
-private:
-    size_t m_objectsProcessed;
-
 protected:
-    virtual void prepare(
-        RenderContext& context,
-        RenderResources& resources,
-        const ApplicationContext& appContext
-    ) override;
-    virtual void execute(
-        RenderContext& context,
-        RenderResources& resources,
-        const ApplicationContext& appContext
-    ) override;
-    virtual void cleanup(
-        RenderContext& context,
-        RenderResources& resources,
-        const ApplicationContext& appContext
-    ) override;
+    void prepare(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) override;
+    void execute(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) override;
+    void cleanup(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) override;
+
+    bool accepts(const Renderable* obj) const override;
+    ShaderKey makeShaderKey(const Renderable* obj, const RenderContext& context) const override;
+
+    void drawRenderable(Renderable* obj) override;
 
 public:
+    TransformFeedbackpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder);
     virtual ~TransformFeedbackpass() = default;
 
-    virtual const char* name() override;
+    const char* name() override;
 
-    virtual void putDebugInfo(DebugReport& report) override;
+    void putDebugInfo(DebugReport& report) override;
 };
 
 #endif

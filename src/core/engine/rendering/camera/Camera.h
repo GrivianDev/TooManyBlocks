@@ -14,9 +14,9 @@ public:
     Camera(float fovy, float aspectRatio);
     virtual ~Camera() = default;
 
-    glm::mat4 getProjectionMatrix();
-    glm::mat4 getViewMatrix();
-    glm::mat4 getViewProjMatrix();
+    glm::mat4 getProjectionMatrix() const;
+    glm::mat4 getViewMatrix() const;
+    glm::mat4 getViewProjMatrix() const;
 
     inline float getFovy() const { return m_fovy; }
     inline float getAspectRatio() const { return m_aspectRatio; }

@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "engine/scene/Axis.h"
-#include "engine/scene/renderables/StaticMesh.h"
+#include "engine/scene/renderables/ChunkMesh.h"
 #include "foundation/threading/Future.h"
 
 constexpr int CHUNK_SIZE = 32;
@@ -38,7 +38,7 @@ private:
     bool m_changed;          // If any block has been changed since the last rebuild started
     bool m_isMarkedForSave;  // If there are changes that need to be written back chunk file
     Future<std::unique_ptr<Block[]>> m_blocks;
-    StaticMesh* m_mesh;
+    ChunkMesh* m_mesh;
     Future<StaticMesh::Asset> m_pendingRebuildMesh;
 
 public:
@@ -54,7 +54,7 @@ public:
     inline bool isMarkedForSave() const { return m_isMarkedForSave; }
     inline bool isLoaded() const { return m_blocks.isReady(); }
     inline const Block* blocks() const { return m_blocks.isReady() ? m_blocks.value().get() : nullptr; }
-    inline StaticMesh* getMesh() { return m_mesh; }
+    inline ChunkMesh* getMesh() { return m_mesh; }
 };
 
 constexpr int chunkBlockIndex(int x, int y, int z) { return z * CHUNK_SLICE_SIZE + y * CHUNK_WIDTH + x; }

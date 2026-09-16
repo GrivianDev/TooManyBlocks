@@ -7,7 +7,6 @@
 #include "Application.h"
 #include "engine/rendering/GLUtils.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/rendering/camera/Camera.h"
 #include "engine/rendering/camera/Frustum.h"
 #include "engine/rendering/particles/ParticleSystem.h"
 #include "engine/scene/renderables/SkeletalMesh.h"
@@ -26,14 +25,11 @@ void OpaqueRenderpass::prepare(
     GLCALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     glm::uvec2 screenRes = context.currScreenRes;
     GLCALL(glViewport(0, 0, screenRes.x, screenRes.y));
-    context.tInfo.viewProjection = appContext.instance->m_player->getCamera()->getViewProjMatrix();
-    context.tInfo.projection = appContext.instance->m_player->getCamera()->getProjectionMatrix();
-    context.tInfo.view = appContext.instance->m_player->getCamera()->getViewMatrix();
-    context.tInfo.viewportTransform = appContext.instance->m_player->getCamera()->getGlobalTransform();
 
     if (m_debugPolygonModeEnabled) {
         GLCALL(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
     }
+    m_objectsProcessed = 0;
 }
 
 void OpaqueRenderpass::execute(
@@ -41,29 +37,10 @@ void OpaqueRenderpass::execute(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    m_objectsProcessed = 0;
-
-    cullObjectsOutOfView(*resources.objectsToRender, resources.culledObjectsBuffer, context.tInfo.viewProjection);
-    batchByMaterialForPass(resources.culledObjectsBuffer, PassType::OpaquePass);
-
-    for (const auto& batch : m_materialBatches) {
-        batch.first->bindForPass(PassType::OpaquePass, context);
-
-        for (const Renderable* obj : batch.second) {
-            if (const SkeletalMesh* sMesh = dynamic_cast<const SkeletalMesh*>(obj)) {
-                context.skInfo.jointMatrices = sMesh->getJointMatrices();
-            } else if (const ParticleSystem* pSys = dynamic_cast<const ParticleSystem*>(obj)) {
-                context.pInfo.flags = pSys->getFlags();
-            }
-            context.tInfo.meshTransform = obj->getRenderableTransform();
-            batch.first->bindForObjectDraw(PassType::OpaquePass, context);
-            obj->draw();
-
-            m_objectsProcessed++;
-        }
-    }
-
-    m_materialBatches.clear();
+    filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
+    cullObjectsOutOfView(resources.passObjectsBuffer, resources.culledObjectsBuffer, context.viewport.viewProjection);
+    batchForPass(resources.culledObjectsBuffer, context);
+    renderBatches(context, resources);
 }
 
 void OpaqueRenderpass::cleanup(
@@ -71,14 +48,33 @@ void OpaqueRenderpass::cleanup(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    context.opaqueInfo.output = m_opaqueBuffer.getAttachedTextures().at(0).get();
+    m_shaderBatches.clear();
+
+    context.opaque.output = m_opaqueBuffer.getAttachedTextures().at(0).get();
 
     if (m_debugPolygonModeEnabled) {
         GLCALL(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
     }
 }
 
-OpaqueRenderpass::OpaqueRenderpass() : m_debugPolygonModeEnabled(false), m_objectsProcessed(0) {
+bool OpaqueRenderpass::accepts(const Renderable* obj) const {
+    return obj->getMaterial()->surface == MaterialSurface::Opaque;
+}
+
+ShaderKey OpaqueRenderpass::makeShaderKey(const Renderable* obj, const RenderContext& context) const {
+    const Material* material = obj->getMaterial().get();
+    ShaderKey key{};
+    key.pass = PassType::Opaque;
+    key.geometry = obj->geometryType();
+    key.features.lit = material->lit;
+    key.features.baseColorTexture = material->baseColorTexture.isReady();
+    key.features.alphaTest = material->alphaCutoff > 0.0f;
+    key.features.ssao = material->occludes && context.ssao.enabled;
+    return key;
+}
+
+OpaqueRenderpass::OpaqueRenderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
+    : Renderpass(shaderManager, binder), m_debugPolygonModeEnabled(false) {
     m_opaqueBuffer = FrameBuffer::create();
 }
 
@@ -101,5 +97,5 @@ void OpaqueRenderpass::createBuffers(RenderContext& context) {
     m_opaqueBuffer.attachTexture(
         std::make_shared<Texture>(Texture::create(TextureType::Depth, context.currScreenRes.x, context.currScreenRes.y))
     );
-    context.opaqueInfo.usedDepthTexture = m_opaqueBuffer.getAttachedDepthTexture();
+    context.opaque.usedDepthTexture = m_opaqueBuffer.getAttachedDepthTexture();
 }

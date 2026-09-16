@@ -4,7 +4,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "engine/rendering/material/Material.h"
+#include "engine/rendering/shaders/ShaderInterfaceBinder.h"
+#include "engine/rendering/shaders/ShaderKey.h"
+#include "engine/rendering/shaders/ShaderManager.h"
 #include "engine/rendering/passes/debug/DebugReport.h"
 #include "engine/scene/renderables/Renderable.h"
 
@@ -17,17 +19,31 @@ private:
     bool m_isEnabled;
 
 protected:
-    std::unordered_map<Material*, std::vector<Renderable*>> m_materialBatches;
+    ShaderManager* m_shaderManager;
+    ShaderInterfaceBinder* m_binder;
+    size_t m_objectsProcessed;
+
+    std::unordered_map<ShaderKey, std::vector<Renderable*>, ShaderKeyHash> m_shaderBatches;
     float m_lastRunTimeMs;
 
     virtual void prepare(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {};
     virtual void execute(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) = 0;
     virtual void cleanup(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {};
 
-    void batchByMaterialForPass(const std::vector<Renderable*>& meshBuff, PassType type);
+    virtual bool accepts(const Renderable* obj) const = 0;
+    virtual ShaderKey makeShaderKey(const Renderable* obj, const RenderContext& context) const = 0;
+
+    virtual void drawRenderable(Renderable* obj);
+    
+    void filterForPass(const std::vector<Renderable*>& input, std::vector<Renderable*>& output);
+
+    void batchForPass(const std::vector<Renderable*>& renderables, const RenderContext& context);
+
+    void renderBatches(RenderContext& context, RenderResources& resources);
 
 public:
-    Renderpass() : m_isEnabled(true) {}
+    Renderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
+        : m_shaderManager(shaderManager), m_binder(binder), m_objectsProcessed(0), m_isEnabled(true) {}
     virtual ~Renderpass() = default;
 
     virtual const char* name() = 0;

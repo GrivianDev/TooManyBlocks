@@ -2,10 +2,40 @@
 
 #include <chrono>
 
-void Renderpass::batchByMaterialForPass(const std::vector<Renderable*>& meshBuff, PassType type) {
-    for (Renderable* mesh : meshBuff) {
-        if (mesh->getMaterial()->supportsPass(type)) {
-            m_materialBatches[mesh->getMaterial().get()].push_back(mesh);
+void Renderpass::drawRenderable(Renderable* obj) { obj->draw(); }
+
+void Renderpass::filterForPass(const std::vector<Renderable*>& input, std::vector<Renderable*>& output) {
+    output.clear();
+    for (Renderable* renderable : input) {
+        if (accepts(renderable)) output.push_back(renderable);
+    }
+}
+
+void Renderpass::batchForPass(const std::vector<Renderable*>& renderables, const RenderContext& context) {
+    m_shaderBatches.clear();
+    for (Renderable* renderable : renderables) {
+        ShaderKey key = makeShaderKey(renderable, context);
+        m_shaderBatches[key].push_back(renderable);
+    }
+}
+
+void Renderpass::renderBatches(RenderContext& context, RenderResources& resources) {
+    for (const auto& [shaderKey, renderables] : m_shaderBatches) {
+        RenderProgram& program = m_shaderManager->loadProgram(shaderKey);
+        m_binder->bindPass(shaderKey.pass, program, context);
+
+        Material* currentMaterial = nullptr;
+        for (Renderable* renderable : renderables) {
+            Material* material = renderable->getMaterial().get();
+            if (material != currentMaterial) {
+                m_binder->bindMaterial(shaderKey.pass, program, context, *material);
+                currentMaterial = material;
+            }
+
+            m_binder->bindRenderable(shaderKey.pass, program, context, renderable);
+            drawRenderable(renderable);
+
+            m_objectsProcessed++;
         }
     }
 }

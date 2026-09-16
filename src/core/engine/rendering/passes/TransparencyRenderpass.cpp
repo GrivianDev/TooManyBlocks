@@ -5,7 +5,6 @@
 #include "Application.h"
 #include "engine/rendering/GLUtils.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/rendering/camera/Camera.h"
 #include "engine/rendering/camera/Frustum.h"
 #include "game/GameInstance.h"
 
@@ -35,10 +34,7 @@ void TransparencyRenderpass::prepare(
     // Disable depth write, transparent pixels do not cover objects
     GLCALL(glDepthMask(GL_FALSE));
 
-    context.tInfo.viewProjection = appContext.instance->m_player->getCamera()->getViewProjMatrix();
-    context.tInfo.projection = appContext.instance->m_player->getCamera()->getProjectionMatrix();
-    context.tInfo.view = appContext.instance->m_player->getCamera()->getViewMatrix();
-    context.tInfo.viewportTransform = appContext.instance->m_player->getCamera()->getGlobalTransform();
+    m_objectsProcessed = 0;
 }
 
 void TransparencyRenderpass::execute(
@@ -46,24 +42,10 @@ void TransparencyRenderpass::execute(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    m_objectsProcessed = 0;
-
-    cullObjectsOutOfView(*resources.objectsToRender, resources.culledObjectsBuffer, context.tInfo.viewProjection);
-    batchByMaterialForPass(resources.culledObjectsBuffer, PassType::TransparencyPass);
-
-    for (const auto& batch : m_materialBatches) {
-        batch.first->bindForPass(PassType::TransparencyPass, context);
-
-        for (const Renderable* obj : batch.second) {
-            context.tInfo.meshTransform = obj->getRenderableTransform();
-            batch.first->bindForObjectDraw(PassType::TransparencyPass, context);
-            obj->draw();
-
-            m_objectsProcessed++;
-        }
-    }
-
-    m_materialBatches.clear();
+    filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
+    cullObjectsOutOfView(resources.passObjectsBuffer, resources.culledObjectsBuffer, context.viewport.viewProjection);
+    batchForPass(resources.culledObjectsBuffer, context);
+    renderBatches(context, resources);
 }
 
 void TransparencyRenderpass::cleanup(
@@ -71,14 +53,33 @@ void TransparencyRenderpass::cleanup(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
+    m_shaderBatches.clear();
+
     GLCALL(glDisable(GL_BLEND));
     GLCALL(glDepthMask(GL_TRUE));
 
-    context.transparencyInfo.accumOutput = m_accAndResBuffer.getAttachedTextures().at(0).get();
-    context.transparencyInfo.revealOutput = m_accAndResBuffer.getAttachedTextures().at(1).get();
+    context.transparency.accumOutput = m_accAndResBuffer.getAttachedTextures().at(0).get();
+    context.transparency.revealOutput = m_accAndResBuffer.getAttachedTextures().at(1).get();
 }
 
-TransparencyRenderpass::TransparencyRenderpass() { m_accAndResBuffer = FrameBuffer::create(); }
+bool TransparencyRenderpass::accepts(const Renderable* obj) const {
+    return obj->getMaterial()->surface == MaterialSurface::Transparent;
+}
+
+ShaderKey TransparencyRenderpass::makeShaderKey(const Renderable* obj, const RenderContext& context) const {
+    const Material* material = obj->getMaterial().get();
+    ShaderKey key{};
+    key.pass = PassType::Transparency;
+    key.geometry = obj->geometryType();
+    key.features.baseColorTexture = material->baseColorTexture.isReady();
+    key.features.alphaTest = material->alphaCutoff > 0.0f;
+    return key;
+}
+
+TransparencyRenderpass::TransparencyRenderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
+    : Renderpass(shaderManager, binder) {
+    m_accAndResBuffer = FrameBuffer::create();
+}
 
 const char* TransparencyRenderpass::name() { return "Transparency Renderpass"; }
 
@@ -102,5 +103,5 @@ void TransparencyRenderpass::createBuffers(RenderContext& context) {
         )
     );
     // Use same depth buffer as opaque pass !!! OPAQUE PASS MUST RESIZE !!!
-    m_accAndResBuffer.attachTexture(context.opaqueInfo.usedDepthTexture);
+    m_accAndResBuffer.attachTexture(context.opaque.usedDepthTexture);
 }

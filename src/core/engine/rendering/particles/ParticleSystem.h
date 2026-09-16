@@ -9,7 +9,7 @@
 #include "engine/rendering/opengl/VertexArray.h"
 #include "engine/rendering/opengl/VertexBuffer.h"
 #include "engine/rendering/particles/ParticleModules.h"
-#include "engine/scene/renderables/Renderable.h"
+#include "engine/scene/renderables/TransformFeedbackRenderable.h"
 
 struct Particle {
     glm::vec4 color;
@@ -21,7 +21,7 @@ struct Particle {
     uint32_t metadata;
 };
 
-class ParticleSystem : public Renderable, public Updatable {
+class ParticleSystem : public TransformFeedbackRenderable, public Updatable {
 private:
     struct BurstSpawn {
         float delay;
@@ -57,27 +57,33 @@ public:
     ParticleSystem(const std::vector<GenericGPUParticleModule>& modules);
     virtual ~ParticleSystem() = default;
 
-    virtual void draw() const override;
+    void draw() const override;
 
-    void switchBuffers();
+    inline GeometryType geometryType() const override { return GeometryType::Particle; }
 
-    void compute();
+    void switchBuffers() override;
+
+    void compute() override;
 
     void reset();
 
     void update(float deltaTime) override;
 
-    const UniformBuffer* getModulesUBO() const { return &m_modulesUBO; }
+    inline const UniformBuffer* getModulesUBO() const { return &m_modulesUBO; }
 
-    virtual BoundingBox getBoundingBox() const override { return BoundingBox::notCullable(); };
+    inline unsigned int getModulesCount() const {
+        return static_cast<unsigned int>(m_modulesUBO.getByteSize() / sizeof(GenericGPUParticleModule));
+    }
 
-    unsigned int getSpawnCount() const { return m_spawnCount; }
+    inline BoundingBox getBoundingBox() const override { return BoundingBox::notCullable(); };
 
-    unsigned int getParticleSpawnOffset() const { return m_particleSpawnOffset; }
+    inline unsigned int getSpawnCount() const { return m_spawnCount; }
 
-    unsigned int getAllocatedParticleCount() const { return m_allocatedParticleCount; }
+    inline unsigned int getParticleSpawnOffset() const { return m_particleSpawnOffset; }
 
-    uint32_t getFlags() const { return m_flags; }
+    inline unsigned int getAllocatedParticleCount() const { return m_allocatedParticleCount; }
+
+    inline uint32_t getFlags() const { return m_flags; }
 };
 
 #endif

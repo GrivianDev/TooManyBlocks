@@ -91,7 +91,7 @@ static std::string loadShaderSource(const std::filesystem::path& filePath) {
     return output;
 }
 
-CPUShader loadShaderFromFile(const std::string& shaderPath, ShaderLoadOption option) {
+CPUShader loadShaderPackFromDirectory(const std::string& shaderPath, ShaderLoadOption option) {
     CPUShader shader;
 
     size_t pos = shaderPath.find_last_of("/\\");
@@ -111,3 +111,5 @@ CPUShader loadShaderFromFile(const std::string& shaderPath, ShaderLoadOption opt
 
     return shader;
 }
+
+std::string loadShaderFromFile(const std::string& filePath) { return loadShaderSource(filePath); }

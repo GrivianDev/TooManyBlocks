@@ -9,7 +9,6 @@
 
 #include "engine/Updatable.h"
 #include "engine/assets/cpu/CPURenderData.h"
-#include "engine/rendering/material/ChunkMaterial.h"
 #include "engine/scene/Scene.h"
 #include "foundation/threading/Future.h"
 #include "game/blocks/BlockToTextureMapping.h"

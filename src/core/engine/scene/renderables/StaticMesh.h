@@ -22,11 +22,12 @@ public:
     StaticMesh() = default;
     StaticMesh(const Future<Asset>& asset, std::shared_ptr<Material> material = nullptr)
         : Renderable(material), m_asset(asset) {}
-    virtual ~StaticMesh() = default;
 
     void draw() const override;
 
     inline bool isReady() const override { return Renderable::isReady() && m_asset.isReady(); }
+
+    inline GeometryType geometryType() const override { return GeometryType::Mesh; };
 
     inline Future<Asset>& getAssetHandle() { return m_asset; }
 

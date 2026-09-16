@@ -10,7 +10,6 @@ uniform sampler2D u_positionTexture;
 uniform sampler2D u_normalTexture;
 uniform sampler2D u_noiseTexture;
 uniform float u_noiseTextureScale;
-uniform uvec2 u_ssaoPassResolution;
 uniform vec3 u_kernelSamples[SSAO_SAMPLE_COUNT];
 
 uniform mat4 u_projection;
@@ -23,7 +22,8 @@ void main() {
     vec3 fragPos = texture(u_positionTexture, screenUV).xyz;
     vec3 normal = texture(u_normalTexture, screenUV).xyz;
 
-    vec2 noiseScale = vec2(u_ssaoPassResolution) / u_noiseTextureScale;
+    // !Assumes u_positionTexture has the same resolution as the target ssao texture!
+    vec2 noiseScale = vec2(textureSize(u_positionTexture, 0)) / u_noiseTextureScale;
     vec3 randomNoiseVec = vec3(texture(u_noiseTexture, screenUV * noiseScale).xy, 0.0);
 
     // Create TBN matrix: Converts tagent space to view space

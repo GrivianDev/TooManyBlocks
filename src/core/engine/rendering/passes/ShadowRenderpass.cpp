@@ -8,7 +8,6 @@
 #include "Logger.h"
 #include "engine/rendering/GLUtils.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/rendering/camera/Camera.h"
 #include "engine/rendering/camera/Frustum.h"
 #include "engine/scene/renderables/SkeletalMesh.h"
 #include "game/GameInstance.h"
@@ -19,17 +18,14 @@ void ShadowRenderpass::prepare(
     const ApplicationContext& appContext
 ) {
     m_lightProcessor.clearShadowMaps();
-
-    context.tInfo.view = appContext.instance->m_player->getCamera()->getViewMatrix();
-    context.tInfo.projection = appContext.instance->m_player->getCamera()->getProjectionMatrix();
-    context.tInfo.viewportTransform = appContext.instance->m_player->getCamera()->getGlobalTransform();
-    context.tInfo.viewProjection = appContext.instance->m_player->getCamera()->getViewProjMatrix();
     m_lightProcessor.prepareShadowData(*resources.lightsToRender, resources.priodLightsBuffer, context);
-    context.lInfo.activeLightsCount = resources.priodLightsBuffer.size();
+    context.lighting.activeLightsCount = resources.priodLightsBuffer.size();
 
     // Depth offset to avoid shadow acne
     GLCALL(glEnable(GL_POLYGON_OFFSET_FILL));
     GLCALL(glPolygonOffset(2.0f, 1.0f));
+
+    m_objectsProcessed = 0;
 }
 
 void ShadowRenderpass::execute(
@@ -37,38 +33,21 @@ void ShadowRenderpass::execute(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    m_objectsProcessed = 0;
-    m_processedLightCount = 0;
-    m_shadowMapCount = 0;
+    filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
 
     for (const GPUShadowMap& shadowMap : m_lightProcessor.getAllocatedShadowMaps()) {
         const Light* light = resources.priodLightsBuffer[shadowMap.lightIndex];
-        context.tInfo.viewProjection = shadowMap.viewProjection;
-        context.tInfo.viewportTransform = light->getGlobalTransform();
+        context.lighting.viewport.viewProjection = shadowMap.viewProjection;
+        context.lighting.viewport.transform = light->getGlobalTransform();
 
         m_lightProcessor.prepareShadowPass(light, shadowMap);
 
-        cullObjectsOutOfView(*resources.objectsToRender, resources.culledObjectsBuffer, context.tInfo.viewProjection);
-        batchByMaterialForPass(resources.culledObjectsBuffer, PassType::ShadowPass);
+        cullObjectsOutOfView(resources.passObjectsBuffer, resources.culledObjectsBuffer, shadowMap.viewProjection);
+        batchForPass(resources.culledObjectsBuffer, context);
 
-        for (const auto& batch : m_materialBatches) {
-            batch.first->bindForPass(PassType::ShadowPass, context);
-
-            for (const Renderable* obj : batch.second) {
-                if (const SkeletalMesh* sMesh = dynamic_cast<const SkeletalMesh*>(obj)) {
-                    context.skInfo.jointMatrices = sMesh->getJointMatrices();
-                }
-                context.tInfo.meshTransform = obj->getRenderableTransform();
-                batch.first->bindForObjectDraw(PassType::ShadowPass, context);
-                obj->draw();
-
-                m_objectsProcessed++;
-            }
-        }
-        m_materialBatches.clear();
+        renderBatches(context, resources);
+        m_shaderBatches.clear();
     }
-    m_processedLightCount = resources.priodLightsBuffer.size();
-    m_shadowMapCount = m_lightProcessor.getAllocatedShadowMaps().size();
 }
 
 void ShadowRenderpass::cleanup(
@@ -76,10 +55,29 @@ void ShadowRenderpass::cleanup(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
+    m_processedLightCount = resources.priodLightsBuffer.size();
+    m_shadowMapCount = m_lightProcessor.getAllocatedShadowMaps().size();
+
     GLCALL(glDisable(GL_POLYGON_OFFSET_FILL));
 }
 
-ShadowRenderpass::ShadowRenderpass() : m_lightProcessor(MAX_LIGHTS) {}
+bool ShadowRenderpass::accepts(const Renderable* obj) const {
+    const Material* material = obj->getMaterial().get(); 
+    return material->surface == MaterialSurface::Opaque && material->castShadows;
+}
+
+ShaderKey ShadowRenderpass::makeShaderKey(const Renderable* obj, const RenderContext& context) const {
+    const Material* material = obj->getMaterial().get();
+    ShaderKey key{};
+    key.pass = PassType::Shadow;
+    key.geometry = obj->geometryType();
+    key.features.baseColorTexture = material->baseColorTexture.isReady();
+    key.features.alphaTest = material->alphaCutoff > 0.0f;
+    return key;
+}
+
+ShadowRenderpass::ShadowRenderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
+    : Renderpass(shaderManager, binder), m_lightProcessor(MAX_LIGHTS) {}
 
 const char* ShadowRenderpass::name() { return "Shadow Pass"; }
 

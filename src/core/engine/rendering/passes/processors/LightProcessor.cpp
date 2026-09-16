@@ -255,7 +255,7 @@ unsigned int LightProcessor::directionalShadowResolution(const Light* light) con
 float LightProcessor::scoreLight(const Light* light, const RenderContext& context) const {
     if (light->getIntensity() < 0.001f) return 0.0f;
 
-    glm::vec3 cameraPos = context.tInfo.viewportTransform.getPosition();
+    glm::vec3 cameraPos = context.viewport.transform.getPosition();
     glm::vec3 lightPos = light->getGlobalTransform().getPosition();
 
     float distance = glm::distance(cameraPos, lightPos);
@@ -314,7 +314,7 @@ void LightProcessor::prepareShadowData(
     std::vector<Light*>& outputBuffer,
     const RenderContext& context
 ) {
-    const Frustum cameraFrustum(context.tInfo.viewProjection);
+    const Frustum cameraFrustum(context.viewport.viewProjection);
 
     m_shadowMapAllocator.clear();
     m_shadowMapBuffer.clear();
@@ -423,7 +423,7 @@ void LightProcessor::prepareShadowData(
             std::vector<GPUShadowMap> generatedMaps;
 
             generateViewProjectionMatrices(
-                generatedMaps, scored.lightPtr, context.tInfo.view, context.tInfo.projection
+                generatedMaps, scored.lightPtr, context.viewport.view, context.viewport.projection
             );
 
             if (m_shadowMapAllocator.allocate(scored.resolution, generatedMaps.size(), allocations)) {

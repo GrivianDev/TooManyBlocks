@@ -92,14 +92,15 @@ public:
     static void syncUsage();
 
     /**
-     * @brief Constructs a new Shader from a file path and optional preprocessor definitions.
+     * @brief Constructs a new Shader from a vertex and fragment shader code and optional preprocessor definitions.
      *
-     * @param shaderPath Path to the shader files directory.
+     * @param vertexShaderCode Vertex shader glsl code.
+     * @param fragmentShaderCode Fragment shader glsl code.
      * @param defines Optional list of preprocessor macro definitions.
      */
     static Shader create(
-        const std::string& vertexShaderPath,
-        const std::string& fragmentShaderPath,
+        const std::string& vertexShaderCode,
+        const std::string& fragmentShaderCode,
         const ShaderDefines& defines = ShaderDefines()
     );
 

@@ -27,6 +27,8 @@ public:
 
     void draw() const override;
 
+    inline GeometryType geometryType() const override { return GeometryType::Line; }
+
     inline void setLineWidth(float lineWidth) { m_lineWidth = lineWidth; }
 
     inline float getLineWidht() const { return m_lineWidth; }

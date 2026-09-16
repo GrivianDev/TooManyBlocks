@@ -1,24 +1,31 @@
-#ifndef TOOMANYBLOCKS_MATERIAL_H
-#define TOOMANYBLOCKS_MATERIAL_H
+#ifndef TOOMANYBLOCKS_MATERIALSYSTEM_H
+#define TOOMANYBLOCKS_MATERIALSYSTEM_H
 
-struct RenderContext;
+#include "engine/rendering/opengl/Texture.h"
+#include "foundation/threading/Future.h"
 
-enum PassType {
-    TransformFeedback,
-    ShadowPass,
-    AmbientOcclusion,
-    OpaquePass,
-    TransparencyPass
+#include <glm/vec4.hpp>
+
+enum class MaterialSurface {
+    Opaque,
+    Transparent
 };
 
-class Material {
-public:
-    virtual ~Material() = default;
+struct Material {
+    MaterialSurface surface = MaterialSurface::Opaque;
 
-    virtual bool isReady() const { return false; }
-    virtual bool supportsPass(PassType passType) const = 0;
-    virtual void bindForPass(PassType passType, const RenderContext& context) = 0;
-    virtual void bindForObjectDraw(PassType passType, const RenderContext& context) = 0;
+    glm::vec4 baseColor = glm::vec4(0.0f);
+    Future<Texture> baseColorTexture;
+
+    float alphaCutoff = 0.0f;
+
+    float specularFactor = 1.0f;
+    float specularExponent = 30.0f;
+
+    bool lit = true;
+    bool castShadows = true;
+    // Objects that produce in gbuffer output for occlusion MUST also consume the total occlusion when opaque rendering
+    bool occludes = false;
 };
 
 #endif

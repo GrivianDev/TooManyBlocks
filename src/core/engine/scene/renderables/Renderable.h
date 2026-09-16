@@ -3,9 +3,10 @@
 
 #include <memory>
 
-#include "engine/scene/SceneComponent.h"
 #include "engine/geometry/BoundingVolume.h"
 #include "engine/rendering/material/Material.h"
+#include "engine/scene/SceneComponent.h"
+#include "engine/scene/renderables/GeometryType.h"
 
 class Renderable : public SceneComponent {
 protected:
@@ -17,7 +18,11 @@ public:
 
     virtual void draw() const = 0;
 
-    virtual bool isReady() const { return m_material && m_material->isReady(); }
+    virtual bool isReady() const {
+        return m_material && (m_material->baseColorTexture.isEmpty() || m_material->baseColorTexture.isReady());
+    }
+
+    virtual GeometryType geometryType() const = 0;
 
     virtual void assignMaterial(std::shared_ptr<Material> material) { m_material = material; }
 

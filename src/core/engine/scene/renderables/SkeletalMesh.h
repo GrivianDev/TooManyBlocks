@@ -48,6 +48,8 @@ public:
 
     inline bool isReady() const override { return Renderable::isReady() && m_asset.isReady() && m_instance.isReady(); }
 
+    inline GeometryType geometryType() const override { return GeometryType::SkeletalMesh; };
+
     inline void setAnimationController(std::unique_ptr<AnimationController> controller) {
         m_animController = std::move(controller);
     }

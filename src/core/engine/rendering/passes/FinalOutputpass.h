@@ -9,29 +9,20 @@ private:
     Shader m_outputShader;
 
 protected:
-    virtual void prepare(
-        RenderContext& context,
-        RenderResources& resources,
-        const ApplicationContext& appContext
-    ) override;
-    virtual void execute(
-        RenderContext& context,
-        RenderResources& resources,
-        const ApplicationContext& appContext
-    ) override;
-    virtual void cleanup(
-        RenderContext& context,
-        RenderResources& resources,
-        const ApplicationContext& appContext
-    ) override;
+    void prepare(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) override;
+    void execute(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) override;
+    void cleanup(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) override;
+
+    inline bool accepts(const Renderable* obj) const override { return true; }
+    inline ShaderKey makeShaderKey(const Renderable* obj, const RenderContext& context) const override { return {}; };
 
 public:
-    FinalOutputpass();
-    virtual ~FinalOutputpass() = default;
+    FinalOutputpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder);
+    ~FinalOutputpass() = default;
 
-    virtual const char* name() override;
+    const char* name() override;
 
-    virtual void putDebugInfo(DebugReport& report) override;
+    void putDebugInfo(DebugReport& report) override;
 };
 
 #endif

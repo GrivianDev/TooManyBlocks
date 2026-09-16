@@ -15,6 +15,5 @@ void main() {
 
     // Safe normalization
     vec3 avgColor = accum.rgb / max(accum.a, 0.0001);
-    vec3 finalColor = mix(opaqueColor, avgColor, (1.0 - reveal));
-    outColor = vec3(finalColor);
+    outColor = mix(opaqueColor, avgColor, (1.0 - reveal));
 }

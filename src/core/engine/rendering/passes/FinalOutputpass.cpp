@@ -26,8 +26,8 @@ void FinalOutputpass::execute(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    const Texture* output = context.resolverInfo.output;
-    if (context.fxaaInfo.enabled) output = context.fxaaInfo.output;
+    const Texture* output = context.resolver.output;
+    if (context.fxaa.enabled) output = context.fxaa.output;
 
     m_outputShader.use();
     output->bindToUnit(0);
@@ -44,8 +44,9 @@ void FinalOutputpass::cleanup(
     GLCALL(glEnable(GL_DEPTH_TEST));
 }
 
-FinalOutputpass::FinalOutputpass() {
-    CPUShader cpuShader = loadShaderFromFile(Res::Shader::FXAA, ShaderLoadOption::VertexAndFragment);
+FinalOutputpass::FinalOutputpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
+    : Renderpass(shaderManager, binder) {
+    CPUShader cpuShader = loadShaderPackFromDirectory(Res::Shader::FXAA, ShaderLoadOption::VertexAndFragment);
     m_outputShader = Shader::create(cpuShader.vertexShader, cpuShader.fragmentShader);
 }
 

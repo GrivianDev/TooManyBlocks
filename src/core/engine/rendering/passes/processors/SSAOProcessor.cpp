@@ -108,8 +108,8 @@ SSAOProcessor::SSAOProcessor() : m_ssaoBufferWidth(0), m_ssaoBufferHeight(0), m_
     );
     delete[] noiseData;
 
-    CPUShader ssaoPassShaderCPU = loadShaderFromFile(Res::Shader::SSAO_PASS, ShaderLoadOption::VertexAndFragment);
-    CPUShader ssaoBlurShaderCPU = loadShaderFromFile(Res::Shader::SSAO_BLUR, ShaderLoadOption::VertexAndFragment);
+    CPUShader ssaoPassShaderCPU = loadShaderPackFromDirectory(Res::Shader::SSAO_PASS, ShaderLoadOption::VertexAndFragment);
+    CPUShader ssaoBlurShaderCPU = loadShaderPackFromDirectory(Res::Shader::SSAO_BLUR, ShaderLoadOption::VertexAndFragment);
 
     m_ssaoPassShader = Shader::create(ssaoPassShaderCPU.vertexShader, ssaoPassShaderCPU.fragmentShader);
     m_ssaoBlurShader = Shader::create(ssaoBlurShaderCPU.vertexShader, ssaoBlurShaderCPU.fragmentShader);
@@ -151,7 +151,6 @@ void SSAOProcessor::prepareSSAOPass(const ApplicationContext& context) {
     m_ssaoPassShader.setUniform("u_noiseTexture", 2);
 
     m_ssaoPassShader.setUniform("u_noiseTextureScale", static_cast<float>(m_ssaoNoiseTexture.width()));
-    m_ssaoPassShader.setUniform("u_ssaoPassResolution", glm::uvec2(m_ssaoBufferWidth, m_ssaoBufferHeight));
     m_ssaoPassShader.setUniform("u_kernelSamples", m_ssaoSamples, SSAO_SAMPLE_COUNT);
     m_ssaoPassShader.setUniform("u_projection", context.instance->m_player->getCamera()->getProjectionMatrix());
 }
@@ -164,8 +163,6 @@ void SSAOProcessor::prepareSSAOBlurPass(const ApplicationContext& context) {
     m_ssaoBlurShader.use();
     m_ssaoPassBuffer.getAttachedTextures().at(0)->bindToUnit(0);
     m_ssaoBlurShader.setUniform("u_ssaoTexture", 0);
-
-    m_ssaoBlurShader.setUniform("u_ssaoPassResolution", glm::uvec2(m_ssaoBufferWidth, m_ssaoBufferHeight));
 }
 
 const Texture* SSAOProcessor::getOcclusionOutput() const { return m_ssaoBlurBuffer.getAttachedTextures().at(0).get(); }

@@ -5,53 +5,51 @@
 #include <glm/vec2.hpp>
 
 #include "Application.h"
-#include "engine/rendering/GLUtils.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/rendering/camera/Camera.h"
 #include "engine/rendering/camera/Frustum.h"
 #include "game/GameInstance.h"
 
+bool SSAORenderpass::accepts(const Renderable* obj) const {
+    const Material* material = obj->getMaterial().get();
+    return material->surface == MaterialSurface::Opaque && material->occludes;
+}
+
+ShaderKey SSAORenderpass::makeShaderKey(const Renderable* obj, const RenderContext& context) const {
+    const Material* material = obj->getMaterial().get();
+    ShaderKey key{};
+    key.pass = PassType::AmbientOcclusion;
+    key.geometry = obj->geometryType();
+    key.features.baseColorTexture = material->baseColorTexture.isReady();
+    key.features.alphaTest = material->alphaCutoff > 0.0f;
+    return key;
+}
+
 void SSAORenderpass::prepare(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
-    context.tInfo.viewProjection = appContext.instance->m_player->getCamera()->getViewProjMatrix();
-    context.tInfo.projection = appContext.instance->m_player->getCamera()->getProjectionMatrix();
-    context.tInfo.view = appContext.instance->m_player->getCamera()->getViewMatrix();
-    context.tInfo.viewportTransform = appContext.instance->m_player->getCamera()->getGlobalTransform();
-    m_ssaoProcessor.validateBuffers(appContext);  // Possible resize sssao textures if resize happened
+    m_ssaoProcessor.validateBuffers(appContext);  // Possible resize ssao textures if resize happened
+    m_ssaoProcessor.prepareSSAOGBufferPass(appContext);
+    m_objectsProcessed = 0;
 }
 
 void SSAORenderpass::execute(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
-    cullObjectsOutOfView(*resources.objectsToRender, resources.culledObjectsBuffer, context.tInfo.viewProjection);
-    batchByMaterialForPass(resources.culledObjectsBuffer, PassType::AmbientOcclusion);
+    filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
+    cullObjectsOutOfView(resources.passObjectsBuffer, resources.culledObjectsBuffer, context.viewport.viewProjection);
+    batchForPass(resources.culledObjectsBuffer, context);
+    renderBatches(context, resources);
 
-    m_objectsProcessed = 0;
-    if (!m_materialBatches.empty()) {
-        m_ssaoProcessor.prepareSSAOGBufferPass(appContext);
+    m_ssaoProcessor.prepareSSAOPass(appContext);
+    appContext.renderer->drawFullscreenQuad();
 
-        for (const auto& batch : m_materialBatches) {
-            batch.first->bindForPass(PassType::AmbientOcclusion, context);
-
-            for (const Renderable* obj : batch.second) {
-                context.tInfo.meshTransform = obj->getRenderableTransform();
-                batch.first->bindForObjectDraw(PassType::AmbientOcclusion, context);
-                obj->draw();
-
-                m_objectsProcessed++;
-            }
-        }
-
-        m_ssaoProcessor.prepareSSAOPass(appContext);
-        appContext.renderer->drawFullscreenQuad();
-
-        m_ssaoProcessor.prepareSSAOBlurPass(appContext);
-        appContext.renderer->drawFullscreenQuad();
-    }
-
-    m_materialBatches.clear();
+    m_ssaoProcessor.prepareSSAOBlurPass(appContext);
+    appContext.renderer->drawFullscreenQuad();
 }
 
 void SSAORenderpass::cleanup(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
-    context.ssaoInfo.output = m_ssaoProcessor.getOcclusionOutput();
+    m_shaderBatches.clear();
+    context.ssao.output = m_ssaoProcessor.getOcclusionOutput();
 }
+
+SSAORenderpass::SSAORenderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
+    : Renderpass(shaderManager, binder) {}
 
 const char* SSAORenderpass::name() { return "SSAO Renderpass"; }
 

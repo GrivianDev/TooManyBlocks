@@ -11,6 +11,8 @@ enum class ShaderLoadOption {
     FragmentOnly
 };
 
-CPUShader loadShaderFromFile(const std::string& shaderPath, ShaderLoadOption option);
+CPUShader loadShaderPackFromDirectory(const std::string& shaderPath, ShaderLoadOption option);
+
+std::string loadShaderFromFile(const std::string& filePath);
 
 #endif

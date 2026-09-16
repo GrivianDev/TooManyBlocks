@@ -11,6 +11,8 @@
 #include "engine/rendering/opengl/VertexBuffer.h"
 #include "engine/rendering/passes/Renderpass.h"
 #include "engine/rendering/passes/debug/DebugReport.h"
+#include "engine/rendering/shaders/ShaderInterfaceBinder.h"
+#include "engine/rendering/shaders/ShaderManager.h"
 #include "engine/scene/lights/Light.h"
 #include "engine/scene/renderables/Renderable.h"
 #include "foundation/compatability/Compatability.h"
@@ -79,19 +81,20 @@ struct GraphicsInfo {
     GraphicsLimits limits;
 };
 
+struct ViewInfo {
+    glm::mat4 view;
+    glm::mat4 projection;
+    glm::mat4 viewProjection;
+    Transform transform;
+};
+
 struct LightingInfo {
+    ViewInfo viewport;
+
     unsigned int activeLightsCount;
     std::array<Texture*, SHADOW_ATLAS_COUNT> shadowMapAtlases;
     const UniformBuffer* lightBuff;
     const UniformBuffer* shadowMapBuff;
-};
-
-struct TransformInfo {
-    glm::mat4 viewProjection;
-    glm::mat4 projection;
-    glm::mat4 view;
-    Transform viewportTransform;
-    Transform meshTransform;
 };
 
 struct ParticleInfo {
@@ -126,25 +129,19 @@ struct TransparencyInfo {
     const Texture* revealOutput;
 };
 
-struct SkeletalMeshInfo {
-    const UniformBuffer* jointMatrices;
-};
-
 struct RenderContext {
     glm::uvec2 currScreenRes;
     bool screenResChanged;
     float deltaTime;
     float elapsedTime;
 
-    TransformInfo tInfo;
-    SkeletalMeshInfo skInfo;
-    LightingInfo lInfo;
-    ParticleInfo pInfo;
-    SSAOInfo ssaoInfo;
-    OpaqueInfo opaqueInfo;
-    TransparencyInfo transparencyInfo;
-    ResolverInfo resolverInfo;
-    FXAAInfo fxaaInfo;
+    ViewInfo viewport;
+    LightingInfo lighting;
+    SSAOInfo ssao;
+    OpaqueInfo opaque;
+    TransparencyInfo transparency;
+    ResolverInfo resolver;
+    FXAAInfo fxaa;
 };
 
 struct RenderResources {
@@ -152,6 +149,7 @@ struct RenderResources {
     const std::vector<Renderable*>* objectsToRender;
 
     std::vector<Light*> priodLightsBuffer;
+    std::vector<Renderable*> passObjectsBuffer;
     std::vector<Renderable*> culledObjectsBuffer;
 };
 
@@ -162,6 +160,9 @@ private:
 
     VertexArray m_fullScreenQuad_vao;
     VertexBuffer m_fullScreenQuad_vbo;
+
+    ShaderManager m_shaderManager;
+    ShaderInterfaceBinder m_binder;
 
     RenderContext m_currentRenderContext;
     RenderResources m_renderResources;

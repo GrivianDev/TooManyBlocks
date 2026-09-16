@@ -7,7 +7,6 @@
 #include "Application.h"
 #include "engine/rendering/GLUtils.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/rendering/camera/Camera.h"
 #include "engine/rendering/camera/Frustum.h"
 #include "engine/rendering/particles/ParticleSystem.h"
 #include "game/GameInstance.h"
@@ -18,8 +17,7 @@ void TransformFeedbackpass::prepare(
     const ApplicationContext& appContext
 ) {
     GLCALL(glEnable(GL_RASTERIZER_DISCARD));
-    context.tInfo.viewProjection = appContext.instance->m_player->getCamera()->getViewProjMatrix();
-    context.tInfo.viewportTransform = appContext.instance->m_player->getCamera()->getGlobalTransform();
+    m_objectsProcessed = 0;
 }
 
 void TransformFeedbackpass::execute(
@@ -27,30 +25,9 @@ void TransformFeedbackpass::execute(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    cullObjectsOutOfView(*resources.objectsToRender, resources.culledObjectsBuffer, context.tInfo.viewProjection);
-    batchByMaterialForPass(resources.culledObjectsBuffer, PassType::TransformFeedback);
-
-    m_objectsProcessed = 0;
-    for (auto& batch : m_materialBatches) {
-        batch.first->bindForPass(PassType::TransformFeedback, context);
-
-        for (Renderable* obj : batch.second) {
-            if (ParticleSystem* ps = dynamic_cast<ParticleSystem*>(obj)) {
-                ps->switchBuffers();
-                context.tInfo.meshTransform = ps->getRenderableTransform();
-                context.pInfo.pModulesBuff = ps->getModulesUBO();
-                context.pInfo.spawnCount = ps->getSpawnCount();
-                context.pInfo.particleSpawnOffset = ps->getParticleSpawnOffset();
-                context.pInfo.allocatedParticleCount = ps->getAllocatedParticleCount();
-                context.pInfo.flags = ps->getFlags();
-                batch.first->bindForObjectDraw(PassType::TransformFeedback, context);
-                ps->compute();
-            }
-            m_objectsProcessed++;
-        }
-    }
-
-    m_materialBatches.clear();
+    filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
+    batchForPass(resources.passObjectsBuffer, context);
+    renderBatches(context, resources);
 }
 
 void TransformFeedbackpass::cleanup(
@@ -58,8 +35,32 @@ void TransformFeedbackpass::cleanup(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
+    m_shaderBatches.clear();
+
     GLCALL(glDisable(GL_RASTERIZER_DISCARD));
 }
+
+bool TransformFeedbackpass::accepts(const Renderable* obj) const {
+    return dynamic_cast<const TransformFeedbackRenderable*>(obj);
+}
+
+ShaderKey TransformFeedbackpass::makeShaderKey(const Renderable* obj, const RenderContext& context) const {
+    const Material* material = obj->getMaterial().get();
+    ShaderKey key{};
+    key.pass = PassType::TransformFeedback;
+    key.geometry = obj->geometryType();
+    return key;
+}
+
+void TransformFeedbackpass::drawRenderable(Renderable* obj) {
+    if (TransformFeedbackRenderable* tfObj = static_cast<TransformFeedbackRenderable*>(obj)) {
+        tfObj->switchBuffers();
+        tfObj->compute();
+    }
+}
+
+TransformFeedbackpass::TransformFeedbackpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
+    : Renderpass(shaderManager, binder) {}
 
 const char* TransformFeedbackpass::name() { return "Transform Feedback Pass"; }
 

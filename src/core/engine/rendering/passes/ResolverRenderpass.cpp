@@ -32,12 +32,11 @@ void ResolverRenderpass::execute(
     const ApplicationContext& appContext
 ) {
     m_resolverShader.use();
-    context.opaqueInfo.output->bindToUnit(0);
+    context.opaque.output->bindToUnit(0);
     m_resolverShader.setUniform("u_opaquePassResult", 0);
-
-    context.transparencyInfo.accumOutput->bindToUnit(1);
+    context.transparency.accumOutput->bindToUnit(1);
     m_resolverShader.setUniform("u_transparencyAccumTexture", 1);
-    context.transparencyInfo.revealOutput->bindToUnit(2);
+    context.transparency.revealOutput->bindToUnit(2);
     m_resolverShader.setUniform("u_transparencyRevealTexture", 2);
 
     appContext.renderer->drawFullscreenQuad();
@@ -48,12 +47,13 @@ void ResolverRenderpass::cleanup(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    context.resolverInfo.output = m_resolverBuffer.getAttachedTextures().at(0).get();
+    context.resolver.output = m_resolverBuffer.getAttachedTextures().at(0).get();
     GLCALL(glEnable(GL_DEPTH_TEST));
 }
 
-ResolverRenderpass::ResolverRenderpass() {
-    CPUShader cpuShader = loadShaderFromFile(Res::Shader::RESOLVER, ShaderLoadOption::VertexAndFragment);
+ResolverRenderpass::ResolverRenderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
+    : Renderpass(shaderManager, binder) {
+    CPUShader cpuShader = loadShaderPackFromDirectory(Res::Shader::RESOLVER, ShaderLoadOption::VertexAndFragment);
     m_resolverShader = Shader::create(cpuShader.vertexShader, cpuShader.fragmentShader);
     m_resolverBuffer = FrameBuffer::create();
 }

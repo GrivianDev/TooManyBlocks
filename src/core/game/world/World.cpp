@@ -13,8 +13,8 @@
 #include "engine/assets/EngineAssets.h"
 #include "engine/assets/meshcreate/ChunkMeshCreate.h"
 #include "engine/rendering/Renderer.h"
-#include "engine/rendering/material/ChunkMaterial.h"
-#include "engine/scene/renderables/StaticMesh.h"
+#include "engine/rendering/material/Material.h"
+#include "engine/scene/renderables/ChunkMesh.h"
 #include "foundation/threading/ThreadPool.h"
 #include "foundation/util/Utility.h"
 #include "game/world/generation/ChunkMeshGeneration.h"
@@ -100,12 +100,14 @@ World::World(const std::filesystem::path& worldDir) : m_worldDir(worldDir), m_cS
     Json::JsonValue info = Json::parseJson(readFile(worldDir / "info.json"));
     m_seed = static_cast<uint32_t>(std::stoul(info["seed"].toString()));
 
+    m_chunkMaterial = std::make_shared<Material>();
+    m_chunkMaterial->surface = MaterialSurface::Opaque;
+    m_chunkMaterial->lit = true;
+    m_chunkMaterial->castShadows = true;
+    m_chunkMaterial->occludes = true;
+
     AssetManager* assets = Application::getContext()->assets;
-    Future<Shader> mainShader = assets->request<Shader>(Assets::Shader::CHUNK);
-    Future<Shader> depthShader = assets->request<Shader>(Assets::Shader::CHUNK_DEPTH);
-    Future<Shader> ssaoGBuffShader = assets->request<Shader>(Assets::Shader::CHUNK_SSAO_GBUFFER);
-    Future<Texture> texture = assets->request<Texture>(Assets::Texture::BLOCK_TEX_ATLAS);
-    m_chunkMaterial = std::make_shared<ChunkMaterial>(mainShader, depthShader, ssaoGBuffShader, texture);
+    m_chunkMaterial->baseColorTexture = assets->request<Texture>(Assets::Texture::BLOCK_TEX_ATLAS);
 }
 
 World::~World() {
@@ -203,7 +205,7 @@ void World::updateChunks(const glm::ivec3& position) {
             // Put placeholder chunk (Chunk with no block data / mesh)
             Chunk placeHolder = Chunk();
             placeHolder.m_blocks = blockGenFuture;
-            placeHolder.m_mesh = m_scene.create<StaticMesh>(meshCreateFuture, m_chunkMaterial);
+            placeHolder.m_mesh = m_scene.create<ChunkMesh>(meshCreateFuture, m_chunkMaterial);
             placeHolder.m_mesh->getLocalTransform().setPosition(chunkPos);
             m_loadedChunks[chunkPos] = std::move(placeHolder);
 

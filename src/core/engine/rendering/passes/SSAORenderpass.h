@@ -9,31 +9,22 @@
 class SSAORenderpass : public Renderpass {
 private:
     SSAOProcessor m_ssaoProcessor;
-    size_t m_objectsProcessed;
+
+    bool accepts(const Renderable* obj) const override;
+    ShaderKey makeShaderKey(const Renderable* obj, const RenderContext& context) const override;
 
 protected:
-    virtual void prepare(
-        RenderContext& context,
-        RenderResources& resources,
-        const ApplicationContext& appContext
-    ) override;
-    virtual void execute(
-        RenderContext& context,
-        RenderResources& resources,
-        const ApplicationContext& appContext
-    ) override;
-    virtual void cleanup(
-        RenderContext& context,
-        RenderResources& resources,
-        const ApplicationContext& appContext
-    ) override;
+    void prepare(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) override;
+    void execute(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) override;
+    void cleanup(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) override;
 
 public:
-    virtual ~SSAORenderpass() = default;
+    SSAORenderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder);
+    ~SSAORenderpass() = default;
 
-    virtual const char* name() override;
+    const char* name() override;
 
-    virtual void putDebugInfo(DebugReport& report) override;
+    void putDebugInfo(DebugReport& report) override;
 
     inline SSAOProcessor& getSSAOProcessor() { return m_ssaoProcessor; }
 };

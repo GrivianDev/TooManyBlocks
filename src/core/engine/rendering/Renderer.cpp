@@ -6,10 +6,8 @@
 
 #include "Application.h"
 #include "Logger.h"
-#include "game/GameInstance.h"
-#include "engine/rendering/camera/Camera.h"
 #include "engine/rendering/GLUtils.h"
-#include "engine/scene/renderables/SkeletalMesh.h"
+#include "engine/rendering/camera/Camera.h"
 #include "engine/rendering/passes/FXAARenderpass.h"
 #include "engine/rendering/passes/FinalOutputpass.h"
 #include "engine/rendering/passes/OpaqueRenderpass.h"
@@ -18,6 +16,8 @@
 #include "engine/rendering/passes/ShadowRenderpass.h"
 #include "engine/rendering/passes/TransformFeebackpass.h"
 #include "engine/rendering/passes/TransparencyRenderpass.h"
+#include "engine/scene/renderables/SkeletalMesh.h"
+#include "game/GameInstance.h"
 
 static constexpr float fullScreenQuadCCW[] = {
     // Position   // UV-Coords
@@ -141,14 +141,20 @@ void Renderer::queryGraphicsInfo() {
 }
 
 void Renderer::updateRenderContext(const ApplicationContext& context) {
+    const Camera* c = context.instance->m_player->getCamera().get();
+    m_currentRenderContext.viewport.view = c->getViewMatrix();
+    m_currentRenderContext.viewport.projection = c->getProjectionMatrix();
+    m_currentRenderContext.viewport.viewProjection = c->getViewProjMatrix();
+    m_currentRenderContext.viewport.transform = c->getGlobalTransform();
+
     glm::uvec2 newScreenRes = glm::uvec2(context.state.screenWidth, context.state.screenHeight);
     m_currentRenderContext.screenResChanged = newScreenRes != m_currentRenderContext.currScreenRes;
     m_currentRenderContext.currScreenRes = newScreenRes;
     m_currentRenderContext.deltaTime = context.instance->gameState.deltaTime;
     m_currentRenderContext.elapsedTime = context.instance->gameState.elapsedGameTime;
 
-    m_currentRenderContext.ssaoInfo.enabled = getPass<SSAORenderpass>()->isEnabled();
-    m_currentRenderContext.fxaaInfo.enabled = getPass<FXAARenderpass>()->isEnabled();
+    m_currentRenderContext.ssao.enabled = getPass<SSAORenderpass>()->isEnabled();
+    m_currentRenderContext.fxaa.enabled = getPass<FXAARenderpass>()->isEnabled();
 
     m_renderResources.culledObjectsBuffer.reserve(m_objectsToRender.size());
 
@@ -181,20 +187,22 @@ void Renderer::init() {
     GLCALL(glFrontFace(GL_CW));      // Specify frontfaces as faces with clockwise winding
     GLCALL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
 
-    std::unique_ptr<TransformFeedbackpass> transformFeebackpass = std::make_unique<TransformFeedbackpass>();
-    std::unique_ptr<ShadowRenderpass> shadowpass = std::make_unique<ShadowRenderpass>();
-    std::unique_ptr<SSAORenderpass> ssaoRenderpass = std::make_unique<SSAORenderpass>();
-    std::unique_ptr<OpaqueRenderpass> opaqueRenderpass = std::make_unique<OpaqueRenderpass>();
-    std::unique_ptr<TransparencyRenderpass> transparencyRenderpass = std::make_unique<TransparencyRenderpass>();
-    std::unique_ptr<ResolverRenderpass> resolverRenderpass = std::make_unique<ResolverRenderpass>();
-    std::unique_ptr<FXAARenderpass> fxaaRenderpass = std::make_unique<FXAARenderpass>();
-    std::unique_ptr<FinalOutputpass> outputPass = std::make_unique<FinalOutputpass>();
+    m_shaderManager.setup();
+
+    auto transformFeebackpass = std::make_unique<TransformFeedbackpass>(&m_shaderManager, &m_binder);
+    auto shadowpass = std::make_unique<ShadowRenderpass>(&m_shaderManager, &m_binder);
+    auto ssaoRenderpass = std::make_unique<SSAORenderpass>(&m_shaderManager, &m_binder);
+    auto opaqueRenderpass = std::make_unique<OpaqueRenderpass>(&m_shaderManager, &m_binder);
+    auto transparencyRenderpass = std::make_unique<TransparencyRenderpass>(&m_shaderManager, &m_binder);
+    auto resolverRenderpass = std::make_unique<ResolverRenderpass>(&m_shaderManager, &m_binder);
+    auto fxaaRenderpass = std::make_unique<FXAARenderpass>(&m_shaderManager, &m_binder);
+    auto outputPass = std::make_unique<FinalOutputpass>(&m_shaderManager, &m_binder);
 
     LightProcessor& lightProcessor = shadowpass->getLightProcessor();
     m_renderResources.priodLightsBuffer.reserve(lightProcessor.getTotalSupportedLights());
-    m_currentRenderContext.lInfo.shadowMapAtlases = lightProcessor.getShadowMapAtlases();
-    m_currentRenderContext.lInfo.lightBuff = lightProcessor.getLightUniformBuffer();
-    m_currentRenderContext.lInfo.shadowMapBuff = lightProcessor.getShadowMapUniformBuffer();
+    m_currentRenderContext.lighting.shadowMapAtlases = lightProcessor.getShadowMapAtlases();
+    m_currentRenderContext.lighting.lightBuff = lightProcessor.getLightUniformBuffer();
+    m_currentRenderContext.lighting.shadowMapBuff = lightProcessor.getShadowMapUniformBuffer();
 
     m_renderpasses.push_back(std::move(transformFeebackpass));
     m_renderpasses.push_back(std::move(shadowpass));
@@ -254,6 +262,7 @@ void Renderer::drawFullscreenQuad() {
 void Renderer::fillDebugReport(DebugReport& report) const {
     report.beginGroup("Renderer Stats");
     report.addTimeMs("Total processing time", m_lastRenderTimeMs);
+    report.addCounter("Shader cache", m_shaderManager.getProgramCount());
     report.addCounter("Submitted objects", m_lastObjectCount);
     report.addCounter("Submitted lights", m_lastLightCount);
     for (const std::unique_ptr<Renderpass>& pass : m_renderpasses) {
