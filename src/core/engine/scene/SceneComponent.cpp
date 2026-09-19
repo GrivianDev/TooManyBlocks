@@ -4,7 +4,110 @@
 
 #include "engine/scene/Scene.h"
 
-SceneComponent::SceneComponent() : scene(nullptr), parent(nullptr), m_attachRule(AttachRule::None), m_visible(true) {};
+void SceneComponent::markWorldStateDirty() const {
+    if (m_worldStateDirty) return;
+
+    m_worldStateDirty = true;
+
+    for (const SceneComponent* child : children) {
+        child->markWorldStateDirty();
+    }
+}
+
+void SceneComponent::updateWorldState() const {
+    if (!m_worldStateDirty) return;
+
+    if (parent && m_attachRule != AttachRule::None) {
+        Transform parentTransform = parent->getGlobalTransform();
+        Transform result;
+
+        switch (m_attachRule) {
+            case AttachRule::Full: result = parentTransform * m_localTransform; break;
+
+            case AttachRule::PosAndScale:
+                result.setPosition(
+                    parentTransform.getPosition() + (m_localTransform.getPosition() * parentTransform.getScale())
+                );                                                  // Adjust based on parent position / scale
+                result.setRotation(m_localTransform.getRotationQuat());  // No rotation inheritance
+                result.setScale(parentTransform.getScale() * m_localTransform.getScale());
+                break;
+
+            case AttachRule::PosAndRot:
+                result.setPosition(
+                    parentTransform.getPosition() + (parentTransform.getRotationQuat() * m_localTransform.getPosition())
+                );  // Adjust based on parent position / rotation
+                result.setRotation(parentTransform.getRotationQuat() * m_localTransform.getRotationQuat());
+                result.setScale(m_localTransform.getScale());  // No scale inheritance
+                break;
+
+            case AttachRule::RotAndScale:
+                result.setPosition(m_localTransform.getPosition());  // No position inheritance
+                result.setRotation(parentTransform.getRotationQuat() * m_localTransform.getRotationQuat());
+                result.setScale(parentTransform.getScale() * m_localTransform.getScale());
+                break;
+
+            case AttachRule::PosOnly:
+                result.setPosition(
+                    parentTransform.getPosition() + m_localTransform.getPosition()
+                );  // Only apply parent translation
+                result.setRotation(m_localTransform.getRotationQuat());
+                result.setScale(m_localTransform.getScale());
+                break;
+
+            case AttachRule::RotOnly:
+                result.setPosition(m_localTransform.getPosition());
+                result.setRotation(
+                    parentTransform.getRotationQuat() * m_localTransform.getRotationQuat()
+                );  // Only apply parent rotation
+                result.setScale(m_localTransform.getScale());
+                break;
+
+            case AttachRule::ScaleOnly:
+                result.setPosition(m_localTransform.getPosition());
+                result.setRotation(m_localTransform.getRotationQuat());
+                result.setScale(parentTransform.getScale() * m_localTransform.getScale());  // Only apply parent scale
+                break;
+
+            default: result = m_localTransform; break;
+        }
+        m_globalTransform = result;
+    } else {
+        m_globalTransform = m_localTransform;
+    }
+
+    updateBounds();
+
+    m_worldStateDirty = false;
+}
+
+void SceneComponent::updateBounds() const {
+    if (m_localBounds.isInvalid() || m_localBounds.isNotCullable()) {
+        m_globalBounds = m_localBounds;
+        return;
+    }
+
+    const glm::vec3 localCenter = (m_localBounds.min + m_localBounds.max) * 0.5f;
+    const glm::vec3 localExtents = (m_localBounds.max - m_localBounds.min) * 0.5f;
+
+    const glm::vec3 worldCenter = m_globalTransform.getPosition() +
+                                  m_globalTransform.getRotationQuat() * (localCenter * m_globalTransform.getScale());
+
+    const glm::mat3 rotation = glm::mat3_cast(m_globalTransform.getRotationQuat());
+    const glm::mat3 absRotation(glm::abs(rotation[0]), glm::abs(rotation[1]), glm::abs(rotation[2]));
+
+    const glm::vec3 worldExtents = absRotation * (localExtents * m_globalTransform.getScale());
+
+    m_globalBounds = {worldCenter - worldExtents, worldCenter + worldExtents};
+}
+
+SceneComponent::SceneComponent()
+    : scene(nullptr),
+      parent(nullptr),
+      m_attachRule(AttachRule::None),
+      m_localBounds(BoundingBox::invalid()),
+      m_globalBounds(BoundingBox::invalid()),
+      m_worldStateDirty(true),
+      m_visible(true) {};
 
 SceneComponent::~SceneComponent() {
     if (parent) {
@@ -36,24 +139,39 @@ void SceneComponent::removeTag(const std::string& tag) {
 }
 
 void SceneComponent::attachChild(SceneComponent* child, AttachRule rule) {
-    if (child->parent != this) {
-        child->parent = this;
-        children.push_back(child);
+    for (const SceneComponent* ancestor = this; ancestor; ancestor = ancestor->parent) {
+        if (ancestor == child) throw std::runtime_error("SceneComponent attachment would create a cycle");
     }
+    if (child->parent == this) {
+        child->m_attachRule = rule;
+        child->markWorldStateDirty();
+        return;
+    }
+
+    if (child->parent) {
+        child->parent->detachChild(child);
+    }
+
+    child->parent = this;
     child->m_attachRule = rule;
+    children.push_back(child);
+
+    child->markWorldStateDirty();
 }
 
 void SceneComponent::detachChild(SceneComponent* child) {
     auto it = std::find(children.begin(), children.end(), child);
-    if (it != children.end()) {
-        children.erase(it);
-    }
+    if (it == children.end()) return;
+
+    children.erase(it);
     child->parent = nullptr;
+    child->markWorldStateDirty();
 }
 
 void SceneComponent::detachAll() {
-    for (SceneComponent* childPtr : children) {
-        childPtr->parent = nullptr;
+    for (SceneComponent* child : children) {
+        child->parent = nullptr;
+        child->markWorldStateDirty();
     }
     children.clear();
 }
@@ -100,60 +218,22 @@ std::unordered_set<SceneComponent*> SceneComponent::findChildrenByTag(const std:
     return result;
 }
 
-Transform SceneComponent::getGlobalTransform() const {
-    if (parent && m_attachRule != AttachRule::None) {
-        Transform parentTransform = parent->getGlobalTransform();
-        Transform result;
+void SceneComponent::setLocalTransform(const Transform& transform) {
+    m_localTransform = transform;
+    markWorldStateDirty();
+}
 
-        switch (m_attachRule) {
-            case AttachRule::Full: return parentTransform * m_transform;
+void SceneComponent::setLocalBounds(const BoundingBox& bounds) {
+    m_localBounds = bounds;
+    markWorldStateDirty();
+}
 
-            case AttachRule::PosAndScale:
-                result.setPosition(
-                    parentTransform.getPosition() + (m_transform.getPosition() * parentTransform.getScale())
-                );                                                  // Adjust based on parent position / scale
-                result.setRotation(m_transform.getRotationQuat());  // No rotation inheritance
-                result.setScale(parentTransform.getScale() * m_transform.getScale());
-                return result;
+const Transform& SceneComponent::getGlobalTransform() const {
+    updateWorldState();
+    return m_globalTransform;
+}
 
-            case AttachRule::PosAndRot:
-                result.setPosition(
-                    parentTransform.getPosition() + (parentTransform.getRotationQuat() * m_transform.getPosition())
-                );  // Adjust based on parent position / rotation
-                result.setRotation(parentTransform.getRotationQuat() * m_transform.getRotationQuat());
-                result.setScale(m_transform.getScale());  // No scale inheritance
-                return result;
-
-            case AttachRule::RotAndScale:
-                result.setPosition(m_transform.getPosition());  // No position inheritance
-                result.setRotation(parentTransform.getRotationQuat() * m_transform.getRotationQuat());
-                result.setScale(parentTransform.getScale() * m_transform.getScale());
-                return result;
-
-            case AttachRule::PosOnly:
-                result.setPosition(
-                    parentTransform.getPosition() + m_transform.getPosition()
-                );  // Only apply parent translation
-                result.setRotation(m_transform.getRotationQuat());
-                result.setScale(m_transform.getScale());
-                return result;
-
-            case AttachRule::RotOnly:
-                result.setPosition(m_transform.getPosition());
-                result.setRotation(
-                    parentTransform.getRotationQuat() * m_transform.getRotationQuat()
-                );  // Only apply parent rotation
-                result.setScale(m_transform.getScale());
-                return result;
-
-            case AttachRule::ScaleOnly:
-                result.setPosition(m_transform.getPosition());
-                result.setRotation(m_transform.getRotationQuat());
-                result.setScale(parentTransform.getScale() * m_transform.getScale());  // Only apply parent scale
-                return result;
-            default: return m_transform;
-        }
-    } else {
-        return m_transform;
-    }
+const BoundingBox& SceneComponent::getGlobalBounds() const {
+    updateWorldState();
+    return m_globalBounds;
 }

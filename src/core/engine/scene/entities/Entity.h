@@ -23,7 +23,9 @@ public:
 
     void update(float deltaTime) override;
 
-    inline Transform& getTransform() { return m_sceneRoot.getLocalTransform(); }
+    inline const Transform& getTransform() const { return m_sceneRoot.getLocalTransform(); }
+
+    inline void setTransform(const Transform& transform) { m_sceneRoot.setLocalTransform(transform); }
 
     glm::vec3 getVelocity() const;
 

@@ -206,7 +206,9 @@ void World::updateChunks(const glm::ivec3& position) {
             Chunk placeHolder = Chunk();
             placeHolder.m_blocks = blockGenFuture;
             placeHolder.m_mesh = m_scene.create<ChunkMesh>(meshCreateFuture, m_chunkMaterial);
-            placeHolder.m_mesh->getLocalTransform().setPosition(chunkPos);
+            Transform placeholderTr = placeHolder.m_mesh->getLocalTransform();
+            placeholderTr.setPosition(chunkPos);
+            placeHolder.m_mesh->setLocalTransform(placeholderTr);
             m_loadedChunks[chunkPos] = std::move(placeHolder);
 
         } else if (it->second.isChanged() && !it->second.isBeingRebuild()) {

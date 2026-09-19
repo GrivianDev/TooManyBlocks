@@ -15,7 +15,10 @@ Entity::~Entity() {
 void Entity::update(float deltaTime) {
     m_movement->update(deltaTime);
     glm::vec3 deltaDistance = m_movement->getVelocity() * deltaTime;
-    m_sceneRoot.getLocalTransform().translate(deltaDistance);
+    
+    Transform localTr = getTransform();
+    localTr.translate(deltaDistance);
+    setTransform(localTr);
 }
 
 glm::vec3 Entity::getVelocity() const { return m_movement->getVelocity(); }

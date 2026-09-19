@@ -3,14 +3,12 @@
 
 #include <memory>
 
-#include "engine/geometry/BoundingVolume.h"
 #include "engine/rendering/RenderData.h"
 #include "engine/scene/renderables/Renderable.h"
 
 class Line : public Renderable {
 private:
     std::unique_ptr<RenderData> m_data;
-    BoundingBox m_bounds;
     float m_lineWidth;
 
 public:
@@ -29,8 +27,6 @@ public:
     inline void setLineWidth(float lineWidth) { m_lineWidth = lineWidth; }
 
     inline float getLineWidht() const { return m_lineWidth; }
-
-    virtual BoundingBox getBoundingBox() const override;
 };
 
 #endif

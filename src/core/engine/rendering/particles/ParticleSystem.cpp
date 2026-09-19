@@ -30,10 +30,13 @@ ParticleSystem::ParticleSystem(const std::vector<GenericGPUParticleModule>& modu
       m_newParticleSpawnOffset(0U),
       m_allocatedParticleCount(0U),
       m_flags(0U) {
-    if (modules.size() > MAX_PARTICLE_MODULES)
+    if (modules.size() > MAX_PARTICLE_MODULES) {
         throw std::runtime_error(
             "More than" + std::to_string(MAX_PARTICLE_MODULES) + " modules were passed to particle system"
         );
+    }
+    
+    setLocalBounds(BoundingBox::notCullable());
 
     bool hasFixedParticleCount = false;
     bool hasSpawnRateModule = false;
@@ -111,11 +114,11 @@ ParticleSystem::ParticleSystem(const std::vector<GenericGPUParticleModule>& modu
 
     m_tfFeedbackVAO1 = VertexArray::create();
     m_instanceDataVBO1 = VertexBuffer::create(nullptr, m_allocatedParticleCount * sizeof(Particle));
-    m_instanceDataVBO1.clearData(); // Zero buffer memory
+    m_instanceDataVBO1.clearData();  // Zero buffer memory
 
     m_tfFeedbackVAO2 = VertexArray::create();
     m_instanceDataVBO2 = VertexBuffer::create(nullptr, m_allocatedParticleCount * sizeof(Particle));
-    m_instanceDataVBO2.clearData(); // Zero buffer memory
+    m_instanceDataVBO2.clearData();  // Zero buffer memory
 
     VertexBufferLayout layout;
     layout.push(GL_FLOAT, 4);

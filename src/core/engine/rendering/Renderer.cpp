@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 
 #include <chrono>
+#include <glm/glm.hpp>
 
 #include "Application.h"
 #include "Logger.h"

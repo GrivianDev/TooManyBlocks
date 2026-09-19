@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "engine/geometry/BoundingVolume.h"
 #include "engine/scene/Transform.h"
 
 class Scene;
@@ -22,6 +23,7 @@ enum class AttachRule {
 
 class SceneComponent {
     friend class Scene;
+    friend class Transform;
 
 private:
     inline void setScene(Scene* scene) { this->scene = scene; }
@@ -34,10 +36,22 @@ protected:
 
     SceneComponent* parent;
     std::vector<SceneComponent*> children;
-    Transform m_transform;
     AttachRule m_attachRule;
 
+    Transform m_localTransform;
+    mutable Transform m_globalTransform;
+    BoundingBox m_localBounds;
+    mutable BoundingBox m_globalBounds;
+
+    mutable bool m_worldStateDirty = true;
+
     bool m_visible;
+
+    void markWorldStateDirty() const;
+
+    void updateWorldState() const;
+
+    void updateBounds() const;
 
 public:
     SceneComponent();
@@ -90,9 +104,16 @@ public:
     }
 
     inline AttachRule getAttachRule() const { return m_attachRule; }
-    inline Transform& getLocalTransform() { return m_transform; }
-    Transform getGlobalTransform() const;
-
+    
+    inline const Transform& getLocalTransform() const { return m_localTransform; }
+    inline const BoundingBox& getLocalBounds() const { return m_localBounds; }
+    
+    void setLocalTransform(const Transform& transform);
+    void setLocalBounds(const BoundingBox& bounds);
+    
+    const Transform& getGlobalTransform() const;
+    const BoundingBox& getGlobalBounds() const;
+    
     inline void setVisible(bool visible) { m_visible = visible; }
     inline bool isVisible() const { return m_visible; }
 };

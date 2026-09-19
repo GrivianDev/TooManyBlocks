@@ -61,24 +61,37 @@ void GameInstance::initializeWorld(World* newWorld) {
         PointLight* pointLight = scene.create<PointLight>(glm::vec3(1.0f), 1.0f, 6.5f);
         pointLight->setCastsShadows(true);
         pointLight->setShadowPriority(1);
-        pointLight->getLocalTransform().setPosition({1.5, 7, 0.5});
-        pointLight->getLocalTransform().lookAt({0, 5, -4});
+
+        {
+            Transform transform = pointLight->getLocalTransform();
+            transform.setPosition({1.5f, 7.0f, 0.5f});
+            transform.lookAt({0.0f, 5.0f, -4.0f});
+            pointLight->setLocalTransform(transform);
+        }
 
         for (int i = 0; i < 5; i++) {
             Spotlight* spotLight = scene.create<Spotlight>(glm::vec3(1.0f), 1.0f, 45.0f, 10.0f);
             spotLight->setInnerCutoffAngle(25);
             spotLight->setCastsShadows(true);
             spotLight->setShadowPriority(1);
-            spotLight->getLocalTransform().setPosition({15 + (i * 10), 8, 0});
-            spotLight->getLocalTransform().lookAt({14 + (i * 10), 4, -4});
+
+            Transform transform = spotLight->getLocalTransform();
+            transform.setPosition({15.0f + (i * 10.0f), 8.0f, 0.0f});
+            transform.lookAt({14.0f + (i * 10.0f), 4.0f, -4.0f});
+            spotLight->setLocalTransform(transform);
         }
 
         DirectionalLight* directionalLight = scene.create<DirectionalLight>(glm::vec3(1.0f, 0.86f, 0.25f), 0.5f);
         directionalLight->setCastsShadows(true);
         directionalLight->setShadowDistance(110);
         directionalLight->setCascadeCount(4);
-        directionalLight->getLocalTransform().setPosition({15, 8, 0});
-        directionalLight->getLocalTransform().lookAt({14, 4, -4});
+
+        {
+            Transform transform = directionalLight->getLocalTransform();
+            transform.setPosition({15.0f, 8.0f, 0.0f});
+            transform.lookAt({14.0f, 4.0f, -4.0f});
+            directionalLight->setLocalTransform(transform);
+        }
 
         std::shared_ptr<Material> testBlockMaterial1 = std::make_shared<Material>();
         testBlockMaterial1->baseColorTexture = assets->request<Texture>(Assets::Texture::TESTBLOCK_TEXTURE);
@@ -99,25 +112,44 @@ void GameInstance::initializeWorld(World* newWorld) {
         Future<StaticMesh::Asset> testUnitBlockAsset = assets->request<StaticMesh::Asset>(
             Assets::Model::TEST_UNIT_BLOCK
         );
+
         StaticMesh* mesh1 = scene.create<StaticMesh>(testUnitBlockAsset, testBlockMaterial1);
         mesh1->setName("MyTestRootBlock1");
+
         StaticMesh* mesh2 = scene.create<StaticMesh>(testUnitBlockAsset, testBlockMaterial2);
         mesh2->setName("MyTestRootBlock2");
+
         StaticMesh* mesh3 = scene.create<StaticMesh>(testUnitBlockAsset, testBlockMaterial3);
         mesh3->setName("MyTestRootBlock3");
 
-        mesh1->getLocalTransform().setPosition(glm::vec3(-1.0f, 9.0f, 0.0f));
-        mesh1->getLocalTransform().setScale(1.0f);
+        {
+            Transform transform = mesh1->getLocalTransform();
+            transform.setPosition(glm::vec3(-1.0f, 9.0f, 0.0f));
+            transform.setScale(1.0f);
+            mesh1->setLocalTransform(transform);
+        }
+
         mesh1->attachChild(mesh2, AttachRule::Full);
-        mesh2->getLocalTransform().translate(glm::vec3(0.0f, 3.0f, 0.0f));
+
+        {
+            Transform transform = mesh2->getLocalTransform();
+            transform.translate(glm::vec3(0.0f, 3.0f, 0.0f));
+            mesh2->setLocalTransform(transform);
+        }
 
         mesh2->attachChild(mesh3, AttachRule::Full);
-        mesh3->getLocalTransform().translate(glm::vec3(0.0f, 1.0f, 1.0f));
+
+        {
+            Transform transform = mesh3->getLocalTransform();
+            transform.translate(glm::vec3(0.0f, 1.0f, 1.0f));
+            mesh3->setLocalTransform(transform);
+        }
 
         std::shared_ptr<Material> focusedBlockOutlineMaterial = std::make_shared<Material>();
         focusedBlockOutlineMaterial->lit = false;
         focusedBlockOutlineMaterial->castShadows = false;
         focusedBlockOutlineMaterial->baseColor = glm::vec4(0.1f, 0.1f, 0.1f, 0.5f);
+
         Wireframe* focusedBlockOutline = scene.create<Wireframe>(
             Wireframe::fromBoundigBox({glm::vec3(-0.005), glm::vec3(1.005)})
         );
@@ -132,20 +164,33 @@ void GameInstance::initializeWorld(World* newWorld) {
         humanoidMaterial->lit = true;
 
         Future<SkeletalMesh::Asset> humanoidAsset = assets->request<SkeletalMesh::Asset>(Assets::Model::HUMANOID);
+
         SkeletalMesh* skeletalMesh1 = scene.create<SkeletalMesh>(humanoidAsset, humanoidMaterial);
         skeletalMesh1->setName("MySkeletalMesh1");
-        skeletalMesh1->getLocalTransform().setPosition({3, 6.5, -2});
-        skeletalMesh1->getLocalTransform().setScale(0.2f);
-        
+
+        {
+            Transform transform = skeletalMesh1->getLocalTransform();
+            transform.setPosition({3.0f, 6.5f, -2.0f});
+            transform.setScale(0.2f);
+            skeletalMesh1->setLocalTransform(transform);
+        }
+
         std::shared_ptr<Material> flyMaterial = std::make_shared<Material>();
         flyMaterial->baseColorTexture = assets->request<Texture>(Assets::Texture::TESTFLY_TEXTURE);
         flyMaterial->occludes = true;
+
         Future<SkeletalMesh::Asset> cuteFlyAsset = assets->request<SkeletalMesh::Asset>(Assets::Model::TESTFLY);
+
         SkeletalMesh* skeletalMesh2 = scene.create<SkeletalMesh>(cuteFlyAsset, flyMaterial);
         skeletalMesh2->setName("MySkeletalMesh2");
-        skeletalMesh2->getLocalTransform().setPosition({-4, 8, -2});
-        skeletalMesh2->getLocalTransform().setScale(0.5f);
-        skeletalMesh2->getLocalTransform().lookAt(skeletalMesh1->getLocalTransform().getPosition());
+
+        {
+            Transform transform = skeletalMesh2->getLocalTransform();
+            transform.setPosition({-4.0f, 8.0f, -2.0f});
+            transform.setScale(0.5f);
+            transform.lookAt(skeletalMesh1->getLocalTransform().getPosition());
+            skeletalMesh2->setLocalTransform(transform);
+        }
 
         // Particles
         ParticleSystem* particles = scene.create<ParticleSystem>(std::vector<GenericGPUParticleModule>{
@@ -153,8 +198,8 @@ void GameInstance::initializeWorld(World* newWorld) {
             ParticleModules::SpawnBurst(3.0f, 200.0f),
             ParticleModules::SphereSpawn(0.5f),
             ParticleModules::Turbulence(50.0f),
-            ParticleModules::InitialVelocityInCone(6.0f, 10.0f, glm::vec3(1.0, 2.0, 0.5), 15.0f),
-            ParticleModules::Acceleration(glm::vec3(0, -9.86, 0)),
+            ParticleModules::InitialVelocityInCone(6.0f, 10.0f, glm::vec3(1.0f, 2.0f, 0.5f), 15.0f),
+            ParticleModules::Acceleration(glm::vec3(0, -9.86f, 0)),
             ParticleModules::InitialLifetime(1.5f, 3.0f),
             ParticleModules::SizeOverLife({{0.5f, 1.0f}, {1.0f, 0.0f}}),
             ParticleModules::AnimatedTexture(4, 7, 3, 0.2f),
@@ -162,12 +207,19 @@ void GameInstance::initializeWorld(World* newWorld) {
                 {{0.0f, glm::vec3(1, 1, 0.5)}, {0.5f, glm::vec3(0.5, 1, 0.5)}, {1.0f, glm::vec3(0, 0.5, 1)}}
             ),
         });
+
         std::shared_ptr<Material> particleMaterial = std::make_shared<Material>();
         particleMaterial->baseColorTexture = assets->request<Texture>(Assets::Texture::BLOCK_TEX_ATLAS);
         particleMaterial->lit = false;
         particleMaterial->castShadows = false;
+
         particles->assignMaterial(particleMaterial);
-        particles->getLocalTransform().setPosition(glm::vec3(10.0f, 12.0f, 5.0f));
+
+        {
+            Transform transform = particles->getLocalTransform();
+            transform.setPosition(glm::vec3(10.0f, 12.0f, 5.0f));
+            particles->setLocalTransform(transform);
+        }
     }
 }
 
@@ -215,10 +267,15 @@ void GameInstance::update(float deltaTime) {
     m_player->update(deltaTime);
 
     if (SceneComponent* mesh1 = m_world->scene().findByName("MyTestRootBlock1")) {
-        mesh1->getLocalTransform().rotate(10.0f * deltaTime, WorldUp);
+        Transform transform = mesh1->getLocalTransform();
+        transform.rotate(10.0f * deltaTime, WorldUp);
+        mesh1->setLocalTransform(transform);
     }
+
     if (SceneComponent* mesh3 = m_world->scene().findByName("MyTestRootBlock3")) {
-        mesh3->getLocalTransform().rotate(2.0f * deltaTime, WorldUp);
+        Transform transform = mesh3->getLocalTransform();
+        transform.rotate(2.0f * deltaTime, WorldUp);
+        mesh3->setLocalTransform(transform);
     }
 
     m_world->updateChunks(m_player->getTransform().getPosition());
@@ -228,7 +285,6 @@ void GameInstance::update(float deltaTime) {
     if (skeletalMesh && accumulatorToggle > 5.0f) {
         if (skeletalMesh->hasTag("ShouldRun")) {
             skeletalMesh->removeTag("ShouldRun");
-
         } else {
             skeletalMesh->addTag("ShouldRun");
         }
@@ -311,5 +367,9 @@ void GameInstance::update(float deltaTime) {
 
     SceneComponent* blockOutline = m_world->scene().findByTag("FocusBlockOutline");
     blockOutline->setVisible(m_player->isFocusingBlock());
-    blockOutline->getLocalTransform().setPosition(m_player->getFocusedBlock());
+    {
+        Transform transform = blockOutline->getLocalTransform();
+        transform.setPosition(m_player->getFocusedBlock());
+        blockOutline->setLocalTransform(transform);
+    }
 }

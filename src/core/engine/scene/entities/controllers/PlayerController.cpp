@@ -28,17 +28,18 @@ void PlayerController::notify(KeyEvent event, KeyEventData data) {
 void PlayerController::notify(MousEvent event, MouseEventData data) {
     if (!keyStates[GLFW_KEY_LEFT_ALT] && event == MousEvent::Move) {
         if (Player* pl = dynamic_cast<Player*>(m_possessedEntity)) {
-            Transform& tr = pl->getCamera()->getLocalTransform();
-
+            
             float pitchDelta = static_cast<float>(-data.delta.y) * 0.25f;
             float yawDelta = static_cast<float>(-data.delta.x) * 0.25f;
-
+            
             float newPitch = glm::clamp(m_cameraPitch + pitchDelta, -89.0f, 89.0f);
             float allowedPitchDelta = newPitch - m_cameraPitch;
             m_cameraPitch += allowedPitchDelta;
-
+            
+            Transform tr = pl->getCamera()->getLocalTransform();
             tr.rotate(yawDelta, WorldUp);
             tr.rotate(allowedPitchDelta, tr.getRight());
+            pl->getCamera()->setLocalTransform(tr);
         }
     } else if (event == MousEvent::ButtonDown || event == MousEvent::ButtonUp) {
         if (!keyStates[GLFW_KEY_LEFT_ALT]) {
@@ -73,14 +74,18 @@ void PlayerController::update(float deltaTime) {
                 for (int y = 0; y < CHUNK_HEIGHT - 1; y++) {
                     if (chunk->blocks()[chunkBlockIndex(0, y, 0)].type == AIR &&
                         chunk->blocks()[chunkBlockIndex(0, y + 1, 0)].type == AIR) {
-                        pl->getTransform().setPosition(glm::vec3(0.5f, chunkPos.y + y + 0.1f, 0.5f));
+                        Transform playerTr = pl->getTransform();
+                        playerTr.setPosition(glm::vec3(0.5f, chunkPos.y + y + 0.1f, 0.5f));
+                        pl->setTransform(playerTr);
                         m_playerNeedsReadjustment = false;
                         break;
                     }
                 }
                 if (m_playerNeedsReadjustment) {
                     // Move up into next chunk
-                    pl->getTransform().setPosition(glm::vec3(0.5f, chunkPos.y + CHUNK_HEIGHT + 0.1f, 0.5f));
+                    Transform playerTr = pl->getTransform();
+                    playerTr.setPosition(glm::vec3(0.5f, chunkPos.y + CHUNK_HEIGHT + 0.1f, 0.5f));
+                    pl->setTransform(playerTr);
                 }
             }
         } else {

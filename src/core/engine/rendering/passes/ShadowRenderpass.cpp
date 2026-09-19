@@ -34,7 +34,7 @@ void ShadowRenderpass::execute(
     const ApplicationContext& appContext
 ) {
     filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
-
+    
     for (const GPUShadowMap& shadowMap : m_lightProcessor.getAllocatedShadowMaps()) {
         const Light* light = resources.priodLightsBuffer[shadowMap.lightIndex];
         context.lighting.viewport.viewProjection = shadowMap.viewProjection;
@@ -62,7 +62,7 @@ void ShadowRenderpass::cleanup(
 }
 
 bool ShadowRenderpass::accepts(const Renderable* obj) const {
-    const Material* material = obj->getMaterial().get(); 
+    const Material* material = obj->getMaterial().get();
     return material->surface == MaterialSurface::Opaque && material->castShadows;
 }
 

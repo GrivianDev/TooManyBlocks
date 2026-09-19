@@ -10,14 +10,9 @@ RenderProgram& ShaderManager::loadProgram(const ShaderKey& key) {
     auto it = m_programs.find(key);
     if (it != m_programs.end()) return it->second;
 
-    auto start = std::chrono::steady_clock::now();
-
     ShaderGenerator generator(&m_modules);
     configureShader(key, generator);
     ShaderContract contract = generator.generate();
-
-    auto end = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
     try {
         if (key.pass == PassType::TransformFeedback) {

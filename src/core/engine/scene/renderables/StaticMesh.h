@@ -20,8 +20,7 @@ private:
 
 public:
     StaticMesh() = default;
-    StaticMesh(const Future<Asset>& asset, std::shared_ptr<Material> material = nullptr)
-        : Renderable(material), m_asset(asset) {}
+    StaticMesh(const Future<Asset>& asset, std::shared_ptr<Material> material = nullptr);
 
     void draw() const override;
 
@@ -30,8 +29,6 @@ public:
     inline GeometryType geometryType() const override { return GeometryType::Mesh; };
 
     inline Future<Asset>& getAssetHandle() { return m_asset; }
-
-    virtual BoundingBox getBoundingBox() const override;
 };
 
 #endif

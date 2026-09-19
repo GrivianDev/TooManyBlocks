@@ -5,9 +5,9 @@
 #include <glm/vec3.hpp>
 
 #include "Application.h"
-#include "engine/scene/entities/controllers/PlayerController.h"
 #include "engine/rendering/Renderer.h"
 #include "engine/scene/entities/Entity.h"
+#include "engine/scene/entities/controllers/PlayerController.h"
 #include "engine/ui/UiUtil.h"
 #include "foundation/time/Timer.h"
 #include "foundation/util/PrettyPrint.h"
@@ -30,7 +30,7 @@ void UI::StatScreen::render() {
     {
         ScopedFont font(UI::manager().getFont(18));
 
-        Transform& cameraTransform = context->instance->m_player->getCamera()->getLocalTransform();
+        const Transform& cameraTransform = context->instance->m_player->getCamera()->getLocalTransform();
         glm::vec3 camRotation = cameraTransform.getRotationEuler();
         glm::vec3 camForward = cameraTransform.getForward();
         glm::vec3 playerPos = context->instance->m_player->getTransform().getPosition();

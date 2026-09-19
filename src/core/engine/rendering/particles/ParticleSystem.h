@@ -75,8 +75,6 @@ public:
         return static_cast<unsigned int>(m_modulesUBO.getByteSize() / sizeof(GenericGPUParticleModule));
     }
 
-    inline BoundingBox getBoundingBox() const override { return BoundingBox::notCullable(); };
-
     inline unsigned int getSpawnCount() const { return m_spawnCount; }
 
     inline unsigned int getParticleSpawnOffset() const { return m_particleSpawnOffset; }

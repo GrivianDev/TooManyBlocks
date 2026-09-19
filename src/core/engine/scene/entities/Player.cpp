@@ -2,7 +2,9 @@
 
 Player::Player() : m_camera(std::make_shared<Camera>(45.0f, 950.0f / 540.0f)), m_reach(6.0f) {
     m_sceneRoot.attachChild(m_camera.get());
-    m_camera->getLocalTransform().translate(glm::vec3(0, 1.5, 0));
+    Transform cameraTr = m_camera->getLocalTransform();
+    cameraTr.translate(glm::vec3(0, 1.5, 0));
+    m_camera->setLocalTransform(cameraTr);
     m_movement->setMovementMode(MovementMode::Walk);
     m_movement->setGravityEnabled(true);
 }

@@ -66,8 +66,6 @@ public:
 
     size_t getNodeCount() const;
 
-    virtual BoundingBox getBoundingBox() const override;
-
     void update(float deltaTime) override;
 };
 

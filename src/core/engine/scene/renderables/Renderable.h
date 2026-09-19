@@ -28,9 +28,7 @@ public:
 
     virtual std::shared_ptr<Material> getMaterial() const { return m_material; };
 
-    virtual BoundingBox getBoundingBox() const { return BoundingBox::invalid(); };
-
-    virtual Transform getRenderableTransform() const { return getGlobalTransform(); }
+    inline virtual const Transform& getRenderableTransform() const { return getGlobalTransform(); }
 };
 
 #endif

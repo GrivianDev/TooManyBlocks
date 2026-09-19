@@ -9,7 +9,7 @@ SkeletalMesh::SkeletalMesh(const Future<Asset>& asset, std::shared_ptr<Material>
             const Asset& assetVal = asset.value();
             std::vector<SceneComponent> sceneCompArray(assetVal.nodeArray.size());
             for (size_t i = 0; i < sceneCompArray.size(); i++) {
-                sceneCompArray[i].getLocalTransform() = assetVal.nodeArray[i].localTransform;
+                sceneCompArray[i].setLocalTransform(assetVal.nodeArray[i].localTransform);
                 sceneCompArray[i].setName(assetVal.nodeArray[i].name);
                 for (int childIndex : assetVal.nodeArray[i].childIndices) {
                     sceneCompArray[assetVal.nodeArray[childIndex].parentIndex].attachChild(&sceneCompArray[childIndex]);
@@ -19,8 +19,9 @@ SkeletalMesh::SkeletalMesh(const Future<Asset>& asset, std::shared_ptr<Material>
                 }
             }
 
-            std::vector<glm::mat4> initalMatrices(std::max<int>(assetVal.jointNodeIndices.size(), 4), glm::mat4(1.0f));
+            setLocalBounds(assetVal.bounds);
 
+            std::vector<glm::mat4> initalMatrices(std::max<int>(assetVal.jointNodeIndices.size(), 4), glm::mat4(1.0f));
             return Instance{
                 std::move(sceneCompArray),
                 UniformBuffer::create(initalMatrices.data(), initalMatrices.size() * sizeof(glm::mat4))
@@ -79,19 +80,13 @@ size_t SkeletalMesh::getNodeCount() const {
     return m_instance.value().nodeArray.size();
 }
 
-BoundingBox SkeletalMesh::getBoundingBox() const {
-    if (!m_asset.isReady()) return Renderable::getBoundingBox();
-
-    return m_asset.value().bounds;
-}
-
 void SkeletalMesh::update(float deltaTime) {
     if (m_animController && isReady()) {
         m_animController->update(deltaTime);
 
         const std::vector<Transform>& animatedTransform = m_animController->getEvaluationTransforms();
         for (size_t i = 0; i < animatedTransform.size(); i++) {
-            m_instance.value().nodeArray[i].getLocalTransform() = animatedTransform[i];
+            m_instance.value().nodeArray[i].setLocalTransform(animatedTransform[i]);
         }
     }
 }
