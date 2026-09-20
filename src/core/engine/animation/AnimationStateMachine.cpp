@@ -17,7 +17,7 @@ AnimationStateMachine::AnimationStateMachine(SkeletalMesh* owner)
       m_transitionDuration(0.0f) {}
 
 void AnimationStateMachine::addState(const std::string& name, std::unique_ptr<AnimationNode> node) {
-    m_states.emplace_back(State{name, std::move(node)});
+    m_states.emplace_back(State{name, std::move(node), {}});
 }
 
 void AnimationStateMachine::addTransition(

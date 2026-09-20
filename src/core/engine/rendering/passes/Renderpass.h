@@ -4,10 +4,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include "engine/rendering/passes/debug/DebugReport.h"
 #include "engine/rendering/shaders/ShaderInterfaceBinder.h"
 #include "engine/rendering/shaders/ShaderKey.h"
 #include "engine/rendering/shaders/ShaderManager.h"
-#include "engine/rendering/passes/debug/DebugReport.h"
 #include "engine/scene/renderables/Renderable.h"
 
 struct RenderContext;
@@ -34,7 +34,7 @@ protected:
     virtual ShaderKey makeShaderKey(const Renderable* obj, const RenderContext& context) const = 0;
 
     virtual void drawRenderable(Renderable* obj);
-    
+
     void filterForPass(const std::vector<Renderable*>& input, std::vector<Renderable*>& output);
 
     void batchForPass(const std::vector<Renderable*>& renderables, const RenderContext& context);
@@ -43,7 +43,7 @@ protected:
 
 public:
     Renderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
-        : m_shaderManager(shaderManager), m_binder(binder), m_objectsProcessed(0), m_isEnabled(true) {}
+        : m_isEnabled(true), m_shaderManager(shaderManager), m_binder(binder), m_objectsProcessed(0) {}
     virtual ~Renderpass() = default;
 
     virtual const char* name() = 0;

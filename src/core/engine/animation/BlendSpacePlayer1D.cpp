@@ -3,7 +3,7 @@
 #include <algorithm>
 
 BlendSpacePlayer1D::BlendSpacePlayer1D(SkeletalMesh* owner, std::function<float(const SkeletalMesh*)> positionFunction)
-    : m_owner(owner), m_position(0.0f), m_speed(1.0f), m_positionFunction(std::move(positionFunction)) {}
+    : m_owner(owner), m_positionFunction(std::move(positionFunction)), m_position(0.0f), m_speed(1.0f) {}
 
 void BlendSpacePlayer1D::addSample(float position, std::unique_ptr<AnimationNode> node) {
     auto it = std::lower_bound(m_samples.begin(), m_samples.end(), position, [](const Sample& sample, float position) {

@@ -183,7 +183,7 @@ void World::updateChunks(const glm::ivec3& position) {
                         generateChunkBlocks(blocks.get(), chunkPos, m_seed);
                     }
 
-                    return std::move(blocks);
+                    return blocks;
                 },
                 m_taskContext
             );

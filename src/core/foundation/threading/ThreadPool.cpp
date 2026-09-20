@@ -1,5 +1,7 @@
 #include "ThreadPool.h"
 
+#include "Logger.h"
+
 #define MAX_MAINTHREAD_TASKS_PER_CALL 1024
 
 void ThreadPool::loop(unsigned int workerIndex) {
@@ -128,6 +130,7 @@ void ThreadPool::processMainThreadJobs() {
     size_t processedJobCount = 0;
     while (true) {
         if (processedJobCount >= MAX_MAINTHREAD_TASKS_PER_CALL) {
+            lgr::lout.warn("Exceeded maximum main thread tasks per call threshold");
             break;
         }
         {

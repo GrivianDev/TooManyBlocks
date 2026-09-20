@@ -43,7 +43,7 @@ struct CompactChunkVertex {
     CompactChunkVertex(
         const glm::ivec3& pos,
         uint8_t frameCount = 0,
-        uint8_t fps = 0,
+        uint8_t fps = 0, // TODO Insert fps in compact data
         uint16_t texIndex = 0,
         UVCoord uv = {0, 0},
         AxisDirection normal = AxisDirection::PositiveX

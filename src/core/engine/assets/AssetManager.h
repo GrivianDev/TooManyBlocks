@@ -144,7 +144,7 @@ private:
     template <typename Source>
     void attachSource(AssetHandle handle, const Source& source) {
         m_assets.emplace(handle, AssetRecord{std::make_unique<AssetSourceHolder<Source>>(source)});
-    };
+    }
 
     inline CacheMetadata resolveCachePolicy(AssetKey key) const {
         auto overridePolicy = m_assetPolicyOverrides.find(key);
