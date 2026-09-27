@@ -542,7 +542,21 @@ CPUSkeletalMeshData loadSkeletalMeshFromGlbFile(const std::string& glbFilePath, 
         }
     }
 
-    skData.meshData.bounds = BoundingBox::notCullable();  // TODO: Remove, this is just for testing
+    // Calculate bounds
+    skData.meshData.bounds = {glm::vec3(0.0f), glm::vec3(0.0f)};
+
+    if (!skData.meshData.vertices.empty()) {
+        glm::vec3 minBounds = skData.meshData.vertices[0].position;
+        glm::vec3 maxBounds = skData.meshData.vertices[0].position;
+
+        for (size_t i = 1; i < skData.meshData.vertices.size(); i++) {
+            const glm::vec3& position = skData.meshData.vertices[i].position;
+            minBounds = glm::min(minBounds, position);
+            maxBounds = glm::max(maxBounds, position);
+        }
+
+        skData.meshData.bounds = {minBounds, maxBounds};
+    }
 
     return skData;
 }
