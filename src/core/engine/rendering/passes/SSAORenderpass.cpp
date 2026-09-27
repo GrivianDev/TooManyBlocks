@@ -27,14 +27,14 @@ ShaderKey SSAORenderpass::makeShaderKey(const Renderable* obj, const RenderConte
 void SSAORenderpass::prepare(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
     m_ssaoProcessor.validateBuffers(appContext);  // Possible resize ssao textures if resize happened
     m_ssaoProcessor.prepareSSAOGBufferPass(appContext);
-    m_objectsProcessed = 0;
 }
 
 void SSAORenderpass::execute(RenderContext& context, RenderResources& resources, const ApplicationContext& appContext) {
-    filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
-    cullObjectsOutOfView(resources.passObjectsBuffer, resources.culledObjectsBuffer, context.viewport.viewProjection);
-    batchForPass(resources.culledObjectsBuffer, context);
-    renderBatches(context, resources);
+    m_passObjects.clear();
+    addForPass(resources.submittedObjects);
+    addForPass(resources.spatialCameraViewObjects);
+    batchForPass(context);
+    renderBatches(context);
 
     m_ssaoProcessor.prepareSSAOPass(appContext);
     appContext.renderer->drawFullscreenQuad();
@@ -56,6 +56,6 @@ const char* SSAORenderpass::name() { return "SSAO Renderpass"; }
 void SSAORenderpass::putDebugInfo(DebugReport& report) {
     report.beginGroup(name());
     report.addTimeMs("Processing Time", m_lastRunTimeMs);
-    report.addCounter("Objects processed", static_cast<int>(m_objectsProcessed));
+    report.addCounter("Objects rendered", static_cast<int>(m_objectsRendered));
     report.endGroup();
 }

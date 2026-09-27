@@ -12,6 +12,8 @@ void SceneComponent::markWorldStateDirty() const {
     for (const SceneComponent* child : children) {
         child->markWorldStateDirty();
     }
+
+    if (scene) scene->onSpatialDirty(const_cast<SceneComponent*>(this));
 }
 
 void SceneComponent::updateWorldState() const {
@@ -27,7 +29,7 @@ void SceneComponent::updateWorldState() const {
             case AttachRule::PosAndScale:
                 result.setPosition(
                     parentTransform.getPosition() + (m_localTransform.getPosition() * parentTransform.getScale())
-                );                                                  // Adjust based on parent position / scale
+                );                                                       // Adjust based on parent position / scale
                 result.setRotation(m_localTransform.getRotationQuat());  // No rotation inheritance
                 result.setScale(parentTransform.getScale() * m_localTransform.getScale());
                 break;
@@ -81,7 +83,7 @@ void SceneComponent::updateWorldState() const {
 }
 
 void SceneComponent::updateBounds() const {
-    if (m_localBounds.isInvalid() || m_localBounds.isNotCullable()) {
+    if (m_localBounds.isInvalid()) {
         m_globalBounds = m_localBounds;
         return;
     }
@@ -107,7 +109,9 @@ SceneComponent::SceneComponent()
       m_localBounds(BoundingBox::invalid()),
       m_globalBounds(BoundingBox::invalid()),
       m_worldStateDirty(true),
-      m_visible(true) {};
+      m_visible(true),
+      m_isCullable(true),
+      m_spatialIndex(-1) {};
 
 SceneComponent::~SceneComponent() {
     if (parent) {

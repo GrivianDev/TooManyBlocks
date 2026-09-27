@@ -17,7 +17,6 @@ void TransformFeedbackpass::prepare(
     const ApplicationContext& appContext
 ) {
     GLCALL(glEnable(GL_RASTERIZER_DISCARD));
-    m_objectsProcessed = 0;
 }
 
 void TransformFeedbackpass::execute(
@@ -25,9 +24,11 @@ void TransformFeedbackpass::execute(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
-    batchForPass(resources.passObjectsBuffer, context);
-    renderBatches(context, resources);
+    m_passObjects.clear();
+    addForPass(resources.submittedObjects);
+    addForPass(resources.spatialCameraViewObjects);
+    batchForPass(context);
+    renderBatches(context);
 }
 
 void TransformFeedbackpass::cleanup(
@@ -67,6 +68,6 @@ const char* TransformFeedbackpass::name() { return "Transform Feedback Pass"; }
 void TransformFeedbackpass::putDebugInfo(DebugReport& report) {
     report.beginGroup(name());
     report.addTimeMs("Processing Time", m_lastRunTimeMs);
-    report.addCounter("Objects processed", static_cast<int>(m_objectsProcessed));
+    report.addCounter("Objects rendered", static_cast<int>(m_objectsRendered));
     report.endGroup();
 }

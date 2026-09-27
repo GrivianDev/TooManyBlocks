@@ -13,6 +13,7 @@ RenderProgram& ShaderManager::loadProgram(const ShaderKey& key) {
     ShaderGenerator generator(&m_modules);
     configureShader(key, generator);
     ShaderContract contract = generator.generate();
+    lgr::lout.debug("Created new shader on the fly");
 
     try {
         if (key.pass == PassType::TransformFeedback) {

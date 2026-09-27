@@ -246,12 +246,16 @@ void GameInstance::deinitWorld() {
 
 void GameInstance::pushWorldRenderData() {
     ApplicationContext* context = Application::getContext();
+    context->renderer->setViewport(m_player->getCamera().get());
     for (Light* light : m_world->scene().getLights()) {
         context->renderer->submitLight(light);
     }
     for (Renderable* sceneObject : m_world->scene().getRenderables()) {
-        context->renderer->submitRenderable(sceneObject);
+        if (!sceneObject->isCullable()) {
+            context->renderer->submitRenderable(sceneObject);
+        }
     }
+    context->renderer->setScene(&m_world->scene());
 }
 
 void GameInstance::update(float deltaTime) {

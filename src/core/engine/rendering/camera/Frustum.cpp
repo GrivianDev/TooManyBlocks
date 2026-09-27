@@ -4,6 +4,19 @@
 
 #include "engine/geometry/BoundingVolume.h"
 
+// OpenGL NDC
+static constexpr glm::vec3 corners[8] = {
+    {-1.0f, -1.0f, -1.0f},
+    {1.0f, -1.0f, -1.0f},
+    {-1.0f, 1.0f, -1.0f},
+    {1.0f, 1.0f, -1.0f},
+
+    {-1.0f, -1.0f, 1.0f},
+    {1.0f, -1.0f, 1.0f},
+    {-1.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f}
+};
+
 enum Planes {
     Near,
     Far,
@@ -13,7 +26,7 @@ enum Planes {
     Bottom
 };
 
-Frustum::Frustum(const glm::mat4& viewProjMatrix) {
+Frustum::Frustum(const glm::mat4& viewProjMatrix) : m_bounds(BoundingBox::invalid()) {
     // Extract planes from the combined projection-view viewProjMatrix
     planes[Left] = glm::vec4(
         viewProjMatrix[0][3] + viewProjMatrix[0][0],
@@ -56,48 +69,53 @@ Frustum::Frustum(const glm::mat4& viewProjMatrix) {
     for (int i = 0; i < 6; i++) {
         planes[i] /= glm::length(glm::vec3(planes[i]));
     }
+
+    const glm::mat4 invVP = glm::inverse(viewProjMatrix);
+    for (const glm::vec3& corner : corners) {
+        glm::vec4 world = invVP * glm::vec4(corner, 1.0f);
+
+        // Perspective divide
+        world /= world.w;
+
+        m_bounds.min = glm::min(m_bounds.min, glm::vec3(world));
+        m_bounds.max = glm::max(m_bounds.max, glm::vec3(world));
+    }
 }
 
-bool Frustum::isBoxInside(const glm::vec3& min, const glm::vec3& max) const {
+bool Frustum::isBoxPotentiallyInside(const glm::vec3& min, const glm::vec3& max) const {
     for (int i = 0; i < 6; i++) {
         const glm::vec4& plane = planes[i];
 
-        // Check if all corners of the bounding box are outside the plane
+        // Find the corner of the AABB that is furthest in the
+        // direction of the plane normal. If even this corner is
+        // outside the plane, the entire AABB is outside the frustum.
+        // Otherwise, the AABB is only known to be a potential intersection.
         glm::vec3 positiveCorner = glm::vec3(
             (plane.x > 0) ? max.x : min.x, (plane.y > 0) ? max.y : min.y, (plane.z > 0) ? max.z : min.z
         );
 
         if (glm::dot(glm::vec3(plane), positiveCorner) + plane.w < 0) {
-            return false;  // Box is outside the frustum
-        }
-    }
-    return true;  // Box is inside or intersects the frustum
-}
-
-bool Frustum::isSphereInside(const glm::vec3& center, float radius) const {
-    for (int i = 0; i < 6; i++) {
-        if (glm::dot(glm::vec3(planes[i]), center) + planes[i].w < -radius) {
+            // Entire box is outside the frustum (Guranteed)
             return false;
         }
     }
     return true;
 }
 
-void cullObjectsOutOfView(
-    const std::vector<Renderable*>& meshes,
-    std::vector<Renderable*>& outputBuffer,
-    const glm::mat4& viewProj
-) {
-    const Frustum frustum(viewProj);
-
-    outputBuffer.clear();
-    for (Renderable* mesh : meshes) {
-        const BoundingBox& bounds = mesh->getGlobalBounds();
-        if (bounds.isInvalid()) {
-            continue;
-        }
-        if (bounds.isNotCullable() || frustum.isBoxInside(bounds.min, bounds.max)) {
-            outputBuffer.push_back(mesh);
+bool Frustum::isSpherePotentiallyInside(const glm::vec3& center, float radius) const {
+    for (int i = 0; i < 6; i++) {
+        if (glm::dot(glm::vec3(planes[i]), center) + planes[i].w < -radius) {
+            // The entire sphere is outside this frustum plane (Guranteed)
+            return false;
         }
     }
+    return true;
+}
+
+bool isObjectInView(const Renderable* renderable, const Frustum& frustum) {
+    const BoundingBox& bounds = renderable->getGlobalBounds();
+    if (bounds.isInvalid()) {
+        return false;
+    }
+     return !renderable->isCullable() || frustum.isBoxPotentiallyInside(bounds.min, bounds.max);
 }

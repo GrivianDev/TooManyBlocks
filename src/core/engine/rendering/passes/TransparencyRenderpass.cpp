@@ -33,8 +33,6 @@ void TransparencyRenderpass::prepare(
 
     // Disable depth write, transparent pixels do not cover objects
     GLCALL(glDepthMask(GL_FALSE));
-
-    m_objectsProcessed = 0;
 }
 
 void TransparencyRenderpass::execute(
@@ -42,10 +40,11 @@ void TransparencyRenderpass::execute(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
-    cullObjectsOutOfView(resources.passObjectsBuffer, resources.culledObjectsBuffer, context.viewport.viewProjection);
-    batchForPass(resources.culledObjectsBuffer, context);
-    renderBatches(context, resources);
+    m_passObjects.clear();
+    addForPass(resources.submittedObjects);
+    addForPass(resources.spatialCameraViewObjects);
+    batchForPass(context);
+    renderBatches(context);
 }
 
 void TransparencyRenderpass::cleanup(
@@ -86,7 +85,7 @@ const char* TransparencyRenderpass::name() { return "Transparency Renderpass"; }
 void TransparencyRenderpass::putDebugInfo(DebugReport& report) {
     report.beginGroup(name());
     report.addTimeMs("Processing Time", m_lastRunTimeMs);
-    report.addCounter("Objects processed", static_cast<int>(m_objectsProcessed));
+    report.addCounter("Objects rendered", static_cast<int>(m_objectsRendered));
     report.endGroup();
 }
 

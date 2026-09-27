@@ -42,7 +42,7 @@ public:
 
     SkeletalMesh() = default;
     SkeletalMesh(const Future<Asset>& asset, std::shared_ptr<Material> material = nullptr);
-    virtual ~SkeletalMesh() = default;
+    ~SkeletalMesh();
 
     void draw() const override;
 

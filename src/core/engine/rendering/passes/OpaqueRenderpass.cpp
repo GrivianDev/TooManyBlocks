@@ -29,7 +29,6 @@ void OpaqueRenderpass::prepare(
     if (m_debugPolygonModeEnabled) {
         GLCALL(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
     }
-    m_objectsProcessed = 0;
 }
 
 void OpaqueRenderpass::execute(
@@ -37,10 +36,11 @@ void OpaqueRenderpass::execute(
     RenderResources& resources,
     const ApplicationContext& appContext
 ) {
-    filterForPass(*resources.objectsToRender, resources.passObjectsBuffer);
-    cullObjectsOutOfView(resources.passObjectsBuffer, resources.culledObjectsBuffer, context.viewport.viewProjection);
-    batchForPass(resources.culledObjectsBuffer, context);
-    renderBatches(context, resources);
+    m_passObjects.clear();
+    addForPass(resources.submittedObjects);
+    addForPass(resources.spatialCameraViewObjects);
+    batchForPass(context);
+    renderBatches(context);
 }
 
 void OpaqueRenderpass::cleanup(
@@ -83,7 +83,7 @@ const char* OpaqueRenderpass::name() { return "Opaque Renderpass"; }
 void OpaqueRenderpass::putDebugInfo(DebugReport& report) {
     report.beginGroup(name());
     report.addTimeMs("Processing Time", m_lastRunTimeMs);
-    report.addCounter("Objects processed", static_cast<int>(m_objectsProcessed));
+    report.addCounter("Objects rendered", static_cast<int>(m_objectsRendered));
     report.endGroup();
 }
 

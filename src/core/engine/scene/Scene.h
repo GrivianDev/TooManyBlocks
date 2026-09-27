@@ -13,8 +13,10 @@
 #include "engine/scene/SceneComponent.h"
 #include "engine/scene/lights/Light.h"
 #include "engine/scene/renderables/Renderable.h"
+#include "engine/scene/spatial/AABBTree.h"
+#include "engine/scene/spatial/SpatialQueriable.h"
 
-class Scene : public Updatable {
+class Scene : public SpatialQueriable<Renderable*>, public Updatable {
     friend class SceneComponent;
 
 private:
@@ -29,13 +31,20 @@ private:
     std::vector<Updatable*> m_updatables;
     std::vector<Renderable*> m_renderables;
 
+    AABBTree<SceneComponent*> m_spatialAabbTree;
+    std::vector<SceneComponent*> m_spatialDirty;
+
     void onNameChanged(SceneComponent* component, const std::string& oldName, const std::string& newName);
 
     void onTagAdded(SceneComponent* component, const std::string& tag);
 
     void onTagRemoved(SceneComponent* component, const std::string& tag);
 
+    void onSpatialDirty(SceneComponent* component);
+
 public:
+    Scene();
+
     template <typename T, typename... Args>
     T* create(Args&&... args) {
         static_assert(std::is_base_of<SceneComponent, T>::value, "T must derive from SceneComponent");
@@ -59,6 +68,7 @@ public:
         if (Renderable* renderable = dynamic_cast<Renderable*>(ptr)) {
             m_renderables.push_back(renderable);
         }
+        m_spatialDirty.push_back(ptr);
 
         return ptr;
     }
@@ -69,7 +79,7 @@ public:
     SceneComponent* findByName(const std::string& name) const;
     SceneComponent* findByTag(const std::string& tag) const;
     template <typename T>
-    T* findByType() const {
+    T* findByExactType() const {
         static_assert(std::is_base_of<SceneComponent, T>::value, "T must derive from SceneComponent");
         auto it = m_typeIndex.find(typeid(T));
         if (it == m_typeIndex.end() || it->second.empty()) return nullptr;
@@ -79,7 +89,7 @@ public:
     std::unordered_set<SceneComponent*> findAllByName(const std::string& name) const;
     std::unordered_set<SceneComponent*> findAllByTag(const std::string& tag) const;
     template <typename T>
-    std::unordered_set<T*> findAllByType() const {
+    std::unordered_set<T*> findAllByExactType() const {
         static_assert(std::is_base_of<SceneComponent, T>::value, "T must derive from SceneComponent");
         auto it = m_typeIndex.find(typeid(T));
         if (it == m_typeIndex.end()) return {};
@@ -99,6 +109,8 @@ public:
 
     inline const std::vector<Renderable*>& getRenderables() const { return m_renderables; }
 
+    void query(const BoundingBox& bounds, std::function<void(Renderable*)> callback) const override;
+    
     void update(float deltaTime) override;
 };
 

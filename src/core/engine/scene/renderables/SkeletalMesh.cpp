@@ -34,6 +34,10 @@ SkeletalMesh::SkeletalMesh(const Future<Asset>& asset, std::shared_ptr<Material>
     m_instance.dependsOn(asset).start();
 }
 
+SkeletalMesh::~SkeletalMesh() {
+    m_instance.cancel();
+}
+
 void SkeletalMesh::draw() const {
     if (!isReady()) return;
 
@@ -89,4 +93,6 @@ void SkeletalMesh::update(float deltaTime) {
             m_instance.value().nodeArray[i].setLocalTransform(animatedTransform[i]);
         }
     }
+
+    updateJointMatrices();
 }

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+constexpr float SPATIAL_FAT_AABB_MARGIN = 0.5f;
+
 void Scene::onNameChanged(SceneComponent* component, const std::string& oldName, const std::string& newName) {
     if (!oldName.empty()) {
         auto it = m_nameIndex.find(oldName);
@@ -31,6 +33,10 @@ void Scene::onTagRemoved(SceneComponent* component, const std::string& tag) {
         m_tagIndex.erase(it);
     }
 }
+
+void Scene::onSpatialDirty(SceneComponent* component) { m_spatialDirty.push_back(component); }
+
+Scene::Scene() : m_spatialAabbTree(SPATIAL_FAT_AABB_MARGIN) {}
 
 void Scene::destroy(SceneComponent* component) {
     if (!component) return;
@@ -113,6 +119,12 @@ void Scene::destroy(SceneComponent* component) {
         }
     }
 
+    // Remove from aabb tree
+    if (component->getSpatialIndex() >= 0) {
+        m_spatialAabbTree.remove(component->getSpatialIndex());
+    }
+    m_spatialDirty.erase(std::remove(m_spatialDirty.begin(), m_spatialDirty.end(), component), m_spatialDirty.end());
+
     m_allSceneObjects.erase(component);
 }
 
@@ -140,8 +152,34 @@ std::unordered_set<SceneComponent*> Scene::findAllByTag(const std::string& tag) 
     return it->second;
 }
 
+void Scene::query(const BoundingBox& bounds, std::function<void(Renderable*)> callback) const {
+    m_spatialAabbTree.query(bounds, [&callback](SceneComponent* object) {
+        if (Renderable* r = dynamic_cast<Renderable*>(object)) {
+            callback(r);
+        }
+    });
+}
+
 void Scene::update(float deltaTime) {
     for (Updatable* u : m_updatables) {
         u->update(deltaTime);
     }
+    for (SceneComponent* c : m_spatialDirty) {
+        const BoundingBox& bounds = c->getGlobalBounds();
+        if (bounds.isInvalid()) {
+            if (c->getSpatialIndex() >= 0) {
+                m_spatialAabbTree.remove(c->getSpatialIndex());
+                c->setSpatialIndex(INVALID_TREE_NODE);
+            }
+            continue;
+        }
+
+        if (c->getSpatialIndex() >= 0) {
+            m_spatialAabbTree.update(c->getSpatialIndex(), c->getGlobalBounds());
+        } else {
+            int spatialIndex = m_spatialAabbTree.insert(c, c->getGlobalBounds());
+            c->setSpatialIndex(spatialIndex);
+        }
+    }
+    m_spatialDirty.clear();
 }

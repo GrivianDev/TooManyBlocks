@@ -43,14 +43,14 @@ struct CompactChunkVertex {
     CompactChunkVertex(
         const glm::ivec3& pos,
         uint8_t frameCount = 0,
-        uint8_t fps = 0, // TODO Insert fps in compact data
+        uint8_t fps = 0, // TODO Utilize this in shader
         uint16_t texIndex = 0,
         UVCoord uv = {0, 0},
         AxisDirection normal = AxisDirection::PositiveX
     ) {
         setPosition(pos);
         setAnimationFrameCount(frameCount);
-        setAnimationFps(frameCount);
+        setAnimationFps(fps);
         setTexIndex(texIndex);
         setUV(uv);
         setNormal(normal);
@@ -77,7 +77,7 @@ struct CompactChunkVertex {
     inline void setAnimationFps(uint8_t fps) {
         SET_BITS(
             packedData1, static_cast<uint32_t>(fps), ANIMATION_FPS_BITMASK, ANIMATION_FPS_OFFSET
-        );  // 6 bit x coord [0 - 63]
+        );  // 6 bit fps [0 - 63]
     }
 
     inline void setTexIndex(uint16_t texIndex) {

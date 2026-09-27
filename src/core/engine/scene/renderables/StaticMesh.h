@@ -17,10 +17,12 @@ public:
 
 private:
     Future<Asset> m_asset;
+    Future<void> m_boundsUpdate;
 
 public:
     StaticMesh() = default;
     StaticMesh(const Future<Asset>& asset, std::shared_ptr<Material> material = nullptr);
+    ~StaticMesh();
 
     void draw() const override;
 

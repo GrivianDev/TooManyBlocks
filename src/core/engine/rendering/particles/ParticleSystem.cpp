@@ -36,7 +36,8 @@ ParticleSystem::ParticleSystem(const std::vector<GenericGPUParticleModule>& modu
         );
     }
     
-    setLocalBounds(BoundingBox::notCullable());
+    setLocalBounds({glm::vec3(-1), glm::vec3(1)});
+    setCullable(false);
 
     bool hasFixedParticleCount = false;
     bool hasSpawnRateModule = false;

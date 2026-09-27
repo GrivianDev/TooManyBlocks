@@ -5,6 +5,8 @@
 #include <memory>
 #include <vector>
 
+#include "engine/rendering/camera/Camera.h"
+#include "engine/rendering/camera/Frustum.h"
 #include "engine/rendering/opengl/Texture.h"
 #include "engine/rendering/opengl/UniformBuffer.h"
 #include "engine/rendering/opengl/VertexArray.h"
@@ -15,6 +17,7 @@
 #include "engine/rendering/shaders/ShaderManager.h"
 #include "engine/scene/lights/Light.h"
 #include "engine/scene/renderables/Renderable.h"
+#include "engine/scene/spatial/SpatialQueriable.h"
 #include "foundation/compatability/Compatability.h"
 
 struct ApplicationContext;
@@ -86,6 +89,7 @@ struct ViewInfo {
     glm::mat4 projection;
     glm::mat4 viewProjection;
     Transform transform;
+    Frustum frustum;
 };
 
 struct LightingInfo {
@@ -135,6 +139,8 @@ struct RenderContext {
     float deltaTime;
     float elapsedTime;
 
+    SpatialQueriable<Renderable*>* scene;
+
     ViewInfo viewport;
     LightingInfo lighting;
     SSAOInfo ssao;
@@ -145,19 +151,16 @@ struct RenderContext {
 };
 
 struct RenderResources {
-    const std::vector<Light*>* lightsToRender;
-    const std::vector<Renderable*>* objectsToRender;
-
+    std::vector<Light*> lights;
     std::vector<Light*> priodLightsBuffer;
-    std::vector<Renderable*> passObjectsBuffer;
-    std::vector<Renderable*> culledObjectsBuffer;
+    std::vector<Renderable*> spatialShadowViewObjects;
+
+    std::vector<Renderable*> submittedObjects;
+    std::vector<Renderable*> spatialCameraViewObjects;
 };
 
 class Renderer {
 private:
-    std::vector<Light*> m_lightsToRender;
-    std::vector<Renderable*> m_objectsToRender;
-
     VertexArray m_fullScreenQuad_vao;
     VertexBuffer m_fullScreenQuad_vbo;
 
@@ -177,12 +180,14 @@ private:
 
     void updateRenderContext(const ApplicationContext& context);
 
-    void updateSkeletalMeshes();
-
 public:
     Renderer() : m_currentRenderContext{}, m_renderResources{} {}
 
     void init();
+
+    void setViewport(const Camera* viewport);
+
+    void setScene(SpatialQueriable<Renderable*>* scene);
 
     void submitLight(Light* light);
 

@@ -314,8 +314,6 @@ void LightProcessor::prepareShadowData(
     std::vector<Light*>& outputBuffer,
     const RenderContext& context
 ) {
-    const Frustum cameraFrustum(context.viewport.viewProjection);
-
     m_shadowMapAllocator.clear();
     m_shadowMapBuffer.clear();
     outputBuffer.clear();
@@ -329,7 +327,7 @@ void LightProcessor::prepareShadowData(
         if (light->getType() == LightType::Directional) {
             if (!directionalLight && light->castsShadows()) directionalLight = static_cast<DirectionalLight*>(light);
             continue;
-        } else if (!cameraFrustum.isSphereInside(light->getGlobalTransform().getPosition(), light->getRange())) {
+        } else if (!context.viewport.frustum.isSpherePotentiallyInside(light->getGlobalTransform().getPosition(), light->getRange())) {
             continue;
         }
 

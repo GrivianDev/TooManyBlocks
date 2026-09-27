@@ -142,11 +142,16 @@ void Renderer::queryGraphicsInfo() {
 }
 
 void Renderer::updateRenderContext(const ApplicationContext& context) {
-    const Camera* c = context.instance->m_player->getCamera().get();
-    m_currentRenderContext.viewport.view = c->getViewMatrix();
-    m_currentRenderContext.viewport.projection = c->getProjectionMatrix();
-    m_currentRenderContext.viewport.viewProjection = c->getViewProjMatrix();
-    m_currentRenderContext.viewport.transform = c->getGlobalTransform();
+    if (m_currentRenderContext.scene) {
+        m_currentRenderContext.scene->query(
+            m_currentRenderContext.viewport.frustum.getBounds(), [this](Renderable* object) {
+                if (object->isVisible() && object->isReady() &&
+                    isObjectInView(object, m_currentRenderContext.viewport.frustum)) {
+                    m_renderResources.spatialCameraViewObjects.push_back(object);
+                }
+            }
+        );
+    }
 
     glm::uvec2 newScreenRes = glm::uvec2(context.state.screenWidth, context.state.screenHeight);
     m_currentRenderContext.screenResChanged = newScreenRes != m_currentRenderContext.currScreenRes;
@@ -157,20 +162,10 @@ void Renderer::updateRenderContext(const ApplicationContext& context) {
     m_currentRenderContext.ssao.enabled = getPass<SSAORenderpass>()->isEnabled();
     m_currentRenderContext.fxaa.enabled = getPass<FXAARenderpass>()->isEnabled();
 
-    m_renderResources.culledObjectsBuffer.reserve(m_objectsToRender.size());
-
     // Update camera aspect ratio just in case it changed via resize of screen.
     context.instance->m_player->getCamera()->setAspectRatio(
         static_cast<float>(context.state.screenWidth) / static_cast<float>(context.state.screenHeight)
     );
-}
-
-void Renderer::updateSkeletalMeshes() {
-    for (Renderable* obj : m_objectsToRender) {
-        if (SkeletalMesh* sMesh = dynamic_cast<SkeletalMesh*>(obj)) {
-            sMesh->updateJointMatrices();
-        }
-    }
 }
 
 void Renderer::init() {
@@ -214,9 +209,6 @@ void Renderer::init() {
     m_renderpasses.push_back(std::move(fxaaRenderpass));
     m_renderpasses.push_back(std::move(outputPass));
 
-    m_renderResources.lightsToRender = &m_lightsToRender;
-    m_renderResources.objectsToRender = &m_objectsToRender;
-
     // Create vertex array / buffer for fullscreen quad
     m_fullScreenQuad_vbo = VertexBuffer::create(fullScreenQuadCW, sizeof(fullScreenQuadCW));
     VertexBufferLayout layout;
@@ -229,16 +221,29 @@ void Renderer::init() {
     FrameBuffer::bindDefault();
 }
 
-void Renderer::submitLight(Light* light) { m_lightsToRender.push_back(light); }
+void Renderer::setViewport(const Camera* viewport) {
+    m_currentRenderContext.viewport.view = viewport->getViewMatrix();
+    m_currentRenderContext.viewport.projection = viewport->getProjectionMatrix();
+    m_currentRenderContext.viewport.viewProjection = viewport->getViewProjMatrix();
+    m_currentRenderContext.viewport.frustum = Frustum(m_currentRenderContext.viewport.viewProjection);
+    m_currentRenderContext.viewport.transform = viewport->getGlobalTransform();
+}
+
+void Renderer::setScene(SpatialQueriable<Renderable*>* scene) { m_currentRenderContext.scene = scene; }
+
+void Renderer::submitLight(Light* light) {
+    if (!light) return;
+    m_renderResources.lights.push_back(light);
+}
 
 void Renderer::submitRenderable(Renderable* obj) {
-    if (!obj->isReady() || !obj->isVisible()) return;
-    m_objectsToRender.push_back(obj);
+    if (obj && obj->isVisible() && obj->isReady() && isObjectInView(obj, m_currentRenderContext.viewport.frustum)) {
+        m_renderResources.submittedObjects.push_back(obj);
+    }
 }
 
 void Renderer::render(const ApplicationContext& context) {
     updateRenderContext(context);
-    updateSkeletalMeshes();
 
     auto start = std::chrono::high_resolution_clock::now();
     for (const std::unique_ptr<Renderpass>& pass : m_renderpasses) {
@@ -247,12 +252,18 @@ void Renderer::render(const ApplicationContext& context) {
     }
     auto end = std::chrono::high_resolution_clock::now();
 
-    m_lastLightCount = static_cast<int>(m_lightsToRender.size());
-    m_lastObjectCount = static_cast<int>(m_objectsToRender.size());
     m_lastRenderTimeMs = std::chrono::duration<float, std::milli>(end - start).count();
 
-    m_lightsToRender.clear();
-    m_objectsToRender.clear();
+    m_lastLightCount = static_cast<int>(m_renderResources.lights.size());
+    m_lastObjectCount = static_cast<int>(
+        m_renderResources.submittedObjects.size() + m_renderResources.spatialCameraViewObjects.size()
+    );
+
+    m_renderResources.lights.clear();
+    m_renderResources.submittedObjects.clear();
+    m_renderResources.spatialCameraViewObjects.clear();
+
+    m_currentRenderContext.scene = nullptr;
 }
 
 void Renderer::drawFullscreenQuad() {
@@ -264,8 +275,8 @@ void Renderer::fillDebugReport(DebugReport& report) const {
     report.beginGroup("Renderer Stats");
     report.addTimeMs("Total processing time", m_lastRenderTimeMs);
     report.addCounter("Shader cache", m_shaderManager.getProgramCount());
-    report.addCounter("Submitted objects", m_lastObjectCount);
-    report.addCounter("Submitted lights", m_lastLightCount);
+    report.addCounter("Handled objects", m_lastObjectCount);
+    report.addCounter("Handled lights", m_lastLightCount);
     for (const std::unique_ptr<Renderpass>& pass : m_renderpasses) {
         pass->putDebugInfo(report);
     }

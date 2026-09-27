@@ -2,6 +2,7 @@
 #define TOOMANYBLOCKS_RENDERPASS_H
 
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "engine/rendering/passes/debug/DebugReport.h"
@@ -9,6 +10,7 @@
 #include "engine/rendering/shaders/ShaderKey.h"
 #include "engine/rendering/shaders/ShaderManager.h"
 #include "engine/scene/renderables/Renderable.h"
+#include "engine/scene/spatial/SpatialQueriable.h"
 
 struct RenderContext;
 struct RenderResources;
@@ -21,8 +23,9 @@ private:
 protected:
     ShaderManager* m_shaderManager;
     ShaderInterfaceBinder* m_binder;
-    size_t m_objectsProcessed;
+    size_t m_objectsRendered;
 
+    std::unordered_set<Renderable*> m_passObjects;
     std::unordered_map<ShaderKey, std::vector<Renderable*>, ShaderKeyHash> m_shaderBatches;
     float m_lastRunTimeMs;
 
@@ -35,15 +38,15 @@ protected:
 
     virtual void drawRenderable(Renderable* obj);
 
-    void filterForPass(const std::vector<Renderable*>& input, std::vector<Renderable*>& output);
+    void addForPass(const std::vector<Renderable*>& objects);
 
-    void batchForPass(const std::vector<Renderable*>& renderables, const RenderContext& context);
+    void batchForPass(const RenderContext& context);
 
-    void renderBatches(RenderContext& context, RenderResources& resources);
+    void renderBatches(const RenderContext& context);
 
 public:
     Renderpass(ShaderManager* shaderManager, ShaderInterfaceBinder* binder)
-        : m_isEnabled(true), m_shaderManager(shaderManager), m_binder(binder), m_objectsProcessed(0) {}
+        : m_isEnabled(true), m_shaderManager(shaderManager), m_binder(binder), m_objectsRendered(0) {}
     virtual ~Renderpass() = default;
 
     virtual const char* name() = 0;
