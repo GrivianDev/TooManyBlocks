@@ -62,6 +62,8 @@ namespace lgr {
         }
 
         std::string timeStampedMessage = "[" + getCurrentTime() + "] [" + tag + "] " + msg;
+
+        std::lock_guard<std::mutex> lock(m_mtx);
         if (m_consoleAvailable) {
             std::cout << timeStampedMessage << std::endl;
         } else if (m_logFile.is_open()) {
