@@ -66,73 +66,40 @@ static void generateChunkBlocks(Block* blocks, const glm::ivec3& chunkPos, uint3
     }
 }
 
-std::unordered_set<glm::ivec3, coord_hash> World::determineActiveChunks(const glm::ivec3& position) {
-    std::unordered_set<glm::ivec3, coord_hash> activeChunks;
-    glm::ivec3 centerChunk(
-        (position.x < 0 ? (position.x - CHUNK_WIDTH + 1) : position.x) / CHUNK_WIDTH * CHUNK_WIDTH,
-        (position.y < 0 ? (position.y - CHUNK_HEIGHT + 1) : position.y) / CHUNK_HEIGHT * CHUNK_HEIGHT,
-        (position.z < 0 ? (position.z - CHUNK_DEPTH + 1) : position.z) / CHUNK_DEPTH * CHUNK_DEPTH
-    );
+void World::determineActiveChunkOffsets() {
+    m_activeChunkOffsets.clear();
 
-    // Compute the range of chunk coordinates to load
-    for (int x = -chunkLoadingDistance * CHUNK_WIDTH; x <= chunkLoadingDistance * CHUNK_WIDTH; x += CHUNK_WIDTH) {
-        for (int y = -chunkLoadingDistance * CHUNK_HEIGHT; y <= chunkLoadingDistance * CHUNK_HEIGHT;
-             y += CHUNK_HEIGHT) {
-            for (int z = -chunkLoadingDistance * CHUNK_DEPTH; z <= chunkLoadingDistance * CHUNK_DEPTH;
-                 z += CHUNK_DEPTH) {
+    float maxDistance = static_cast<float>(m_chunkLoadingDistance * CHUNK_WIDTH);
+    float maxDistanceSq = maxDistance * maxDistance;
+
+    for (int x = -m_chunkLoadingDistance; x <= m_chunkLoadingDistance; x++) {
+        for (int y = -m_chunkLoadingDistance; y <= m_chunkLoadingDistance; y++) {
+            for (int z = -m_chunkLoadingDistance; z <= m_chunkLoadingDistance; z++) {
                 glm::ivec3 offset(x * CHUNK_WIDTH, y * CHUNK_HEIGHT, z * CHUNK_DEPTH);
-                glm::ivec3 chunkPos = centerChunk + glm::ivec3(x, y, z);
 
-                // Only include chunks within Euclidean distance
-                if (glm::length(glm::vec3(chunkPos - centerChunk)) <= chunkLoadingDistance * CHUNK_WIDTH) {
-                    activeChunks.insert(chunkPos);
+                float distanceSq = static_cast<float>(offset.x * offset.x) + static_cast<float>(offset.y * offset.y) +
+                                   static_cast<float>(offset.z * offset.z);
+                if (distanceSq <= maxDistanceSq) {
+                    m_activeChunkOffsets.push_back(offset);
                 }
             }
         }
     }
-    return activeChunks;
 }
 
-World::World(const std::filesystem::path& worldDir) : m_worldDir(worldDir), m_cStorage(worldDir) {
-    m_taskContext = Application::getContext()->workerPool->getNewTaskContext();
-
-    // Load world data
-    Json::JsonValue info = Json::parseJson(readFile(worldDir / "info.json"));
-    m_seed = static_cast<uint32_t>(std::stoul(info["seed"].toString()));
-
-    m_chunkMaterial = std::make_shared<Material>();
-    m_chunkMaterial->surface = MaterialSurface::Opaque;
-    m_chunkMaterial->lit = true;
-    m_chunkMaterial->castShadows = true;
-    m_chunkMaterial->occludes = true;
-
-    AssetManager* assets = Application::getContext()->assets;
-    m_chunkMaterial->baseColorTexture = assets->request<Texture>(Assets::Texture::BLOCK_TEX_ATLAS);
-}
-
-World::~World() {
-    ThreadPool* pool = Application::getContext()->workerPool;
-    pool->destroyTaskContext(m_taskContext);
-    pool->waitForCurrentActiveTasks();
-}
-
-Chunk* World::getChunk(const glm::ivec3& location) {
-    auto it = m_loadedChunks.find(location);
-    if (it != m_loadedChunks.end()) {
-        if (it->second.isLoaded()) {
-            return &it->second;
-        }
-    }
-    return nullptr;
-}
-
-void World::updateChunks(const glm::ivec3& position) {
-    // Step 1: Determine active chunk positions
-    std::unordered_set<glm::ivec3, coord_hash> activeChunks = determineActiveChunks(position);
-
-    // Step 2: Unload chunks that are no longer in the active set
+void World::unloadDistantChunks(const glm::ivec3& centerChunk) {
+    int chunkLoadRadiusSq = m_chunkLoadingDistance * m_chunkLoadingDistance;
     for (auto it = m_loadedChunks.begin(); it != m_loadedChunks.end();) {
-        if (activeChunks.find(it->first) == activeChunks.end()) {
+        const glm::ivec3& chunkPos = it->first;
+        glm::ivec3 delta = chunkPos - centerChunk;
+
+        int dx = delta.x / CHUNK_WIDTH;
+        int dy = delta.y / CHUNK_HEIGHT;
+        int dz = delta.z / CHUNK_DEPTH;
+
+        int distanceSq = dx * dx + dy * dy + dz * dz;
+
+        if (distanceSq > chunkLoadRadiusSq) {
             if (it->second.isMarkedForSave()) {
                 // Save chunk that will be unloaded but has changes
                 glm::ivec3 chunkPos = it->first;
@@ -150,24 +117,18 @@ void World::updateChunks(const glm::ivec3& position) {
                 );
                 future.start();
             }
+            // Unload
             m_scene.destroy(it->second.m_mesh);
             it = m_loadedChunks.erase(it);
         } else {
-            ++it;  // Chunk is still active
+            ++it;  // Chunk still active
         }
     }
+}
 
-    // Step 3: Process optional pending mesh build
-    for (auto it = m_loadedChunks.begin(); it != m_loadedChunks.end(); it++) {
-        it->second.tryCommitRebuild();
-    }
-
-    // Step 4: TODO Process pending changes for unloaded chunks
-    // * Currently unhanlded *
-    m_pendingChanges.clear();
-
-    // Step 5: Load chunks that are in the active set but not yet loaded or need mesh rebuild
-    for (const glm::ivec3& chunkPos : activeChunks) {
+void World::loadAndRebuildNecessaryChunks(const glm::ivec3& centerChunk) {
+    for (const glm::ivec3& chunkOffset : m_activeChunkOffsets) {
+        glm::ivec3 chunkPos = centerChunk + chunkOffset;
         auto it = m_loadedChunks.find(chunkPos);
         if (it == m_loadedChunks.end()) {
             // Chunk does not exist -> Needs to be fully loaded
@@ -182,7 +143,6 @@ void World::updateChunks(const glm::ivec3& position) {
                         blocks = std::unique_ptr<Block[]>(new Block[BLOCKS_PER_CHUNK], std::default_delete<Block[]>());
                         generateChunkBlocks(blocks.get(), chunkPos, m_seed);
                     }
-
                     return blocks;
                 },
                 m_taskContext
@@ -237,6 +197,60 @@ void World::updateChunks(const glm::ivec3& position) {
             m_loadedChunks[chunkPos].m_pendingRebuildMesh = meshCreateFuture;
         }
     }
+}
+
+World::World(const std::filesystem::path& worldDir) : m_worldDir(worldDir), m_cStorage(worldDir) {
+    m_taskContext = Application::getContext()->workerPool->getNewTaskContext();
+
+    // Load world data
+    Json::JsonValue info = Json::parseJson(readFile(worldDir / "info.json"));
+    m_seed = static_cast<uint32_t>(std::stoul(info["seed"].toString()));
+
+    m_chunkMaterial = std::make_shared<Material>();
+    m_chunkMaterial->surface = MaterialSurface::Opaque;
+    m_chunkMaterial->lit = true;
+    m_chunkMaterial->castShadows = true;
+    m_chunkMaterial->occludes = true;
+
+    AssetManager* assets = Application::getContext()->assets;
+    m_chunkMaterial->baseColorTexture = assets->request<Texture>(Assets::Texture::BLOCK_TEX_ATLAS);
+}
+
+World::~World() {
+    ThreadPool* pool = Application::getContext()->workerPool;
+    pool->destroyTaskContext(m_taskContext);
+    pool->waitForCurrentActiveTasks();
+}
+
+Chunk* World::getChunk(const glm::ivec3& location) {
+    auto it = m_loadedChunks.find(location);
+    if (it != m_loadedChunks.end()) {
+        if (it->second.isLoaded()) {
+            return &it->second;
+        }
+    }
+    return nullptr;
+}
+
+void World::updateChunks(const glm::vec3& updateOrigin) {
+    if (m_chunkLoadingDistanceChanged) {
+        determineActiveChunkOffsets();
+        m_chunkLoadingDistanceChanged = false;
+    }
+
+    glm::ivec3 centerChunk = Chunk::worldToChunkOrigin(updateOrigin);
+    unloadDistantChunks(centerChunk);
+
+    for (auto it = m_loadedChunks.begin(); it != m_loadedChunks.end(); it++) {
+        it->second.tryCommitRebuild();
+    }
+
+    //  TODO Process pending changes for unloaded chunks
+    // * Currently unhanlded *
+    m_pendingChanges.clear();
+
+    // Step 5: Load chunks that are in the active set but not yet loaded or need mesh rebuild
+    loadAndRebuildNecessaryChunks(centerChunk);
 }
 
 void World::syncedSaveChunks() {

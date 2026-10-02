@@ -23,13 +23,19 @@ private:
     uint32_t m_seed;
     const std::filesystem::path m_worldDir;
     ChunkStorage m_cStorage;
-    int chunkLoadingDistance;
+    int m_chunkLoadingDistance;
+    bool m_chunkLoadingDistanceChanged;
     std::unordered_map<glm::ivec3, Chunk, coord_hash> m_loadedChunks;
+    std::vector<glm::ivec3> m_activeChunkOffsets;
     std::shared_ptr<Material> m_chunkMaterial;
 
     std::unordered_map<glm::ivec3, uint16_t, coord_hash> m_pendingChanges;
 
-    std::unordered_set<glm::ivec3, coord_hash> determineActiveChunks(const glm::ivec3& position);
+    void determineActiveChunkOffsets();
+
+    void unloadDistantChunks(const glm::ivec3& centerChunk);
+
+    void loadAndRebuildNecessaryChunks(const glm::ivec3& centerChunk);
 
 public:
     const BlockToTextureMap texMap;
@@ -44,7 +50,7 @@ public:
 
     Chunk* getChunk(const glm::ivec3& location);
 
-    void updateChunks(const glm::ivec3& position);
+    void updateChunks(const glm::vec3& updateOrigin);
 
     void syncedSaveChunks();
 
@@ -52,9 +58,12 @@ public:
 
     inline std::unordered_map<glm::ivec3, Chunk, coord_hash>& loadedChunks() { return m_loadedChunks; }
 
-    inline void setChunkLoadingDistance(int distance) { chunkLoadingDistance = distance; }
+    inline void setChunkLoadingDistance(int distance) {
+        m_chunkLoadingDistance = distance;
+        m_chunkLoadingDistanceChanged = true;
+    }
 
-    inline int getChunkLoadingDistance() const { return chunkLoadingDistance; }
+    inline int getChunkLoadingDistance() const { return m_chunkLoadingDistance; }
 
     void update(float deltaTime) override;
 };
