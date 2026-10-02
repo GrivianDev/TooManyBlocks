@@ -30,6 +30,36 @@ enum class FutureStatus {
     Failed
 };
 
+#ifdef ENABLE_FUTURE_DEBUGGING
+#include <sstream>
+#include <string>
+#include <thread>
+#include <typeinfo>
+
+#include "Logger.h"
+
+constexpr const char* _toString(Executor executor) {
+    switch (executor) {
+        case Executor::Worker: return "Worker";
+        case Executor::Main: return "Main";
+    }
+    return "Unknown";
+}
+
+constexpr const char* _toString(FutureStatus status) {
+    switch (status) {
+        case FutureStatus::Building: return "Building";
+        case FutureStatus::Finalized: return "Finalized";
+        case FutureStatus::Pending: return "Pending";
+        case FutureStatus::Running: return "Running";
+        case FutureStatus::Completed: return "Completed";
+        case FutureStatus::Failed: return "Failed";
+    }
+    return "Unknown";
+}
+
+#endif
+
 class FutureBase {
     template <typename T>
     friend class Future;
@@ -40,6 +70,10 @@ private:
     virtual void dependecyFinished() = 0;
 
 public:
+#ifdef ENABLE_FUTURE_DEBUGGING
+    inline static std::atomic<uint64_t> nextDebugId{1};
+#endif
+
     inline static void (*scheduleCallback)(std::unique_ptr<FutureBase>, Executor) = nullptr;
 
     virtual ~FutureBase() = default;
@@ -69,6 +103,14 @@ private:
     template <typename U>
     friend class Future;
 
+#ifdef ENABLE_FUTURE_DEBUGGING
+    struct DebugInfo {
+        uint64_t id;
+        std::string name;
+        const char* typeName;
+    };
+#endif
+
     struct TaskState {
         std::atomic<FutureStatus> status{FutureStatus::Building};
         Executor executor;
@@ -84,6 +126,14 @@ private:
         std::function<T()> task;
         std::conditional_t<!std::is_void_v<T>, std::optional<T>, char> value;
         std::exception_ptr exception;
+
+#ifdef ENABLE_FUTURE_DEBUGGING
+        DebugInfo debugInfo;
+
+        TaskState() { debugInfo.typeName = typeid(T).name(); }
+
+        ~TaskState() { logDebug(this, "destroyed"); }
+#endif
     };
 
     struct StateRef {
@@ -104,6 +154,10 @@ private:
             s->value.emplace(std::move(v));
         }
 
+#ifdef ENABLE_FUTURE_DEBUGGING
+        logDebug(s, "completed");
+#endif
+
         onCompleted(s);
     }
 
@@ -115,6 +169,10 @@ private:
 
         std::lock_guard<std::mutex> lock(s->mtx);
         s->exception = e;
+
+#ifdef ENABLE_FUTURE_DEBUGGING
+        logDebug(s, "failed");
+#endif
 
         onCompleted(s);
     }
@@ -134,7 +192,11 @@ private:
     }
 
     virtual void dependecyFinished() override {
-        if (getState()->unresolvedDeps.fetch_sub(1) == 1) {
+        auto s = getState();
+        if (s->unresolvedDeps.fetch_sub(1) == 1) {
+#ifdef ENABLE_FUTURE_DEBUGGING
+            logDebug(s, "dependencies-completed");
+#endif
             trySchedule();
         }
     }
@@ -155,11 +217,15 @@ private:
             return;  // already scheduled by someone else or not finalized
         }
 
+#ifdef ENABLE_FUTURE_DEBUGGING
+        logDebug(s, "scheduled");
+#endif
+
         std::unique_ptr<Future<T>> selfRef = std::make_unique<Future<T>>(*this);
         FutureBase::scheduleCallback(std::move(selfRef), s->executor);
     }
 
-    inline std::shared_ptr<TaskState> getState() const {
+    std::shared_ptr<TaskState> getState() const {
         if (stateRef) {
             std::lock_guard<std::mutex> lock(stateRef->mtx);
             return stateRef->state;
@@ -167,12 +233,12 @@ private:
         return nullptr;
     }
 
-    inline void incrementHandleCount() {
+    void incrementHandleCount() {
         auto s = getState();
         if (s) s->handleCount.fetch_add(1, std::memory_order_relaxed);
     }
 
-    inline void decrementHandleCount() {
+    void decrementHandleCount() {
         auto s = getState();
         if (s) s->handleCount.fetch_sub(1, std::memory_order_relaxed);
     }
@@ -182,6 +248,32 @@ private:
         ref->state = std::make_shared<TaskState>();
         return ref;
     }
+
+#ifdef ENABLE_FUTURE_DEBUGGING
+
+    static void logDebug(const std::shared_ptr<TaskState>& s, const char* event) { logDebug(s.get(), event); }
+
+    static void logDebug(const TaskState* s, const char* event) {
+        if (!s || s->debugInfo.name.empty()) return;
+        std::stringstream ss;
+        ss << event << " [Future#" << s->debugInfo.id << ": \"" << s->debugInfo.name
+           << "\", type=" << s->debugInfo.typeName << ", status=" << _toString(s->status.load())
+           << ", deps=" << s->unresolvedDeps.load() << ", handles=" << s->handleCount.load(std::memory_order_relaxed)
+           << ", executor=" << _toString(s->executor) << ", context=" << s->taskContext;
+
+        if constexpr (!std::is_void_v<T>) {
+            if (s->value.has_value()) {
+                ss << ", value=" << static_cast<const void*>(std::addressof(*s->value));
+            } else {
+                ss << ", value=null";
+            }
+        }
+
+        ss << ", thread=" << std::this_thread::get_id() << "]";
+        lgr::lout.debug(ss.str());
+    }
+
+#endif
 
 public:
     template <typename U = T>
@@ -229,7 +321,7 @@ public:
     virtual ~Future() { decrementHandleCount(); }
 
     template <typename U>
-    inline Future<T>& dependsOn(Future<U> other) {
+    Future<T>& dependsOn(Future<U> other) {
         if (isEmpty() || other.isEmpty()) throw std::runtime_error("Cannot depend on empty future");
 
         auto s = getState();
@@ -246,10 +338,14 @@ public:
 
         other.addDependent(std::make_shared<Future<T>>(*this));
 
+#ifdef ENABLE_FUTURE_DEBUGGING
+        logDependency<U>(s.get(), other.getState().get());
+#endif
+
         return *this;
     }
 
-    inline void resolve(Future<T> other) {
+    void resolve(Future<T> other) {
         if (isEmpty() || other.isEmpty()) throw std::runtime_error("Cannot resolve empty future");
 
         auto from = getState();
@@ -272,9 +368,12 @@ public:
                 to->dependents.insert(to->dependents.end(), fromDependents.begin(), fromDependents.end());
             }
         }
+#ifdef ENABLE_FUTURE_DEBUGGING
+        logDebug(to, "resolved-to");
+#endif
     }
 
-    inline Future<T>& start() {
+    Future<T>& start() {
         if (isEmpty()) throw std::runtime_error("Cannot start empty future");
 
         // Advance status to Finalized if neeeded
@@ -285,7 +384,7 @@ public:
         return *this;
     }
 
-    inline void execute() override {
+    void execute() override {
         if (isEmpty()) throw std::runtime_error("Cannot execute empty future");
 
         auto s = getState();
@@ -296,6 +395,10 @@ public:
         if (!s->status.compare_exchange_strong(expected, FutureStatus::Running)) {
             return;  // already executed by someone else
         }
+
+#ifdef ENABLE_FUTURE_DEBUGGING
+        logDebug(s, "execute-begin");
+#endif
 
         std::function<T()> tmpTask = std::move(s->task);
         s->task = {};
@@ -315,7 +418,7 @@ public:
         }
     }
 
-    inline void cancel() override {
+    void cancel() override {
         if (isEmpty() || isReady()) return;
 
         // Force advance status to Running so that completeFailure can run
@@ -327,37 +430,48 @@ public:
         expected = FutureStatus::Pending;
         s->status.compare_exchange_strong(expected, FutureStatus::Running);
 
+#ifdef ENABLE_FUTURE_DEBUGGING
+        logDebug(s, "cancel-requested");
+#endif
+
         completeFailure(s, std::make_exception_ptr(std::runtime_error("Task canceled")));
     }
 
-    inline void reset() {
+    void reset() {
         decrementHandleCount();
         stateRef.reset();
     }
 
     // Caller suspends until future has been executed / finished with error
-    inline void await() {
+    void await() {
         if (isEmpty()) return;
         auto s = getState();
         std::unique_lock<std::mutex> lock(s->mtx);
+
+#ifdef ENABLE_FUTURE_DEBUGGING
+        logDebug(s, "await-begin");
+#endif
         s->cv.wait(lock, [this] { return isReady(); });
+#ifdef ENABLE_FUTURE_DEBUGGING
+        logDebug(s, "await-end");
+#endif
     }
 
-    inline bool isEmpty() const override { return !stateRef || !stateRef->state; }
+    bool isEmpty() const override { return !stateRef || !stateRef->state; }
 
-    inline bool isReady() const override {
+    bool isReady() const override {
         auto s = getState();
         if (!s) return false;
         FutureStatus status = s->status.load();
         return status == FutureStatus::Completed || status == FutureStatus::Failed;
     }
 
-    inline bool hasError() const {
+    bool hasError() const {
         auto s = getState();
         return s && s->status.load() == FutureStatus::Failed;
     }
 
-    inline size_t useCount() const {
+    size_t useCount() const {
         auto s = getState();
         return s ? s->handleCount.load(std::memory_order_relaxed) : 0;
     }
@@ -378,12 +492,12 @@ public:
         return *s->value;
     }
 
-    inline std::exception_ptr getException() const {
+    std::exception_ptr getException() const {
         if (!hasError()) return nullptr;
         return getState()->exception;
     }
 
-    inline Future<T>& operator=(const Future<T>& other) {
+    Future<T>& operator=(const Future<T>& other) {
         if (this == &other) return *this;
 
         decrementHandleCount();
@@ -394,7 +508,7 @@ public:
         return *this;
     }
 
-    inline Future<T>& operator=(Future<T>&& other) noexcept {
+    Future<T>& operator=(Future<T>&& other) noexcept {
         if (this == &other) return *this;
 
         decrementHandleCount();
@@ -403,6 +517,44 @@ public:
 
         return *this;
     }
+
+#ifdef ENABLE_FUTURE_DEBUGGING
+
+    template <typename U>
+    void logDependency(const TaskState* future, const typename Future<U>::TaskState* dependency) {
+        if (!future || !dependency) return;
+        if (future->debugInfo.name.empty() && dependency->debugInfo.name.empty()) return;
+
+        std::stringstream ss;
+
+        ss << "dependency [";
+
+        if (!future->debugInfo.name.empty()) {
+            ss << "Future#" << future->debugInfo.id << ": \"" << future->debugInfo.name << "\"";
+        } else {
+            ss << "<untracked>" << static_cast<const void*>(future);
+        }
+        ss << ", type=" << future->debugInfo.typeName << "] -> [";
+
+        if (!dependency->debugInfo.name.empty()) {
+            ss << "Future#" << dependency->debugInfo.id << ": \"" << dependency->debugInfo.name << "\"";
+        } else {
+            ss << "<untracked>" << static_cast<const void*>(dependency);
+        }
+        ss << ", type=" << dependency->debugInfo.typeName << "]";
+
+        lgr::lout.info(ss.str());
+    }
+
+    Future<T>& debug(const std::string& name) {
+        auto s = getState();
+
+        s->debugInfo.id = FutureBase::nextDebugId.fetch_add(1, std::memory_order_relaxed);
+        s->debugInfo.name = name;
+
+        return *this;
+    }
+#endif
 };
 
 #endif
