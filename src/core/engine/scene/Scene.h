@@ -44,6 +44,7 @@ private:
 
 public:
     Scene();
+    ~Scene();
 
     template <typename T, typename... Args>
     T* create(Args&&... args) {

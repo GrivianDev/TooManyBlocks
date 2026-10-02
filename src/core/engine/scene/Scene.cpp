@@ -38,12 +38,22 @@ void Scene::onSpatialDirty(SceneComponent* component) { m_spatialDirty.push_back
 
 Scene::Scene() : m_spatialAabbTree(SPATIAL_FAT_AABB_MARGIN) {}
 
+Scene::~Scene() {
+    while (!m_allSceneObjects.empty()) {
+        SceneComponent* component = m_allSceneObjects.begin()->first;
+        destroy(component);
+    }
+}
+
 void Scene::destroy(SceneComponent* component) {
     if (!component) return;
     if (component->scene != this) return;
+    component->scene = nullptr;
 
     const std::vector<SceneComponent*> children = component->children;  // copy
-    for (SceneComponent* child : children) destroy(child);
+    for (SceneComponent* child : children) {
+        destroy(child);
+    }
 
     // Remove from name index
     {
@@ -123,6 +133,7 @@ void Scene::destroy(SceneComponent* component) {
     if (component->getSpatialIndex() >= 0) {
         m_spatialAabbTree.remove(component->getSpatialIndex());
     }
+
     m_spatialDirty.erase(std::remove(m_spatialDirty.begin(), m_spatialDirty.end(), component), m_spatialDirty.end());
 
     m_allSceneObjects.erase(component);
