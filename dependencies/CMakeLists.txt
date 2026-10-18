@@ -59,9 +59,9 @@ set(MINIAUDIO_NO_RESOURCE_MANAGER ON CACHE BOOL "Ressources are managed manually
 set(MINIAUDIO_NO_NODE_GRAPH ON CACHE BOOL "No Nodes since mixing is done manually" FORCE)
 set(MINIAUDIO_NO_EXTRA_NODES ON CACHE BOOL "No advanced effets needed" FORCE)
 set(MINIAUDIO_NO_FLAC ON CACHE BOOL "MP3 and WAV suffice" FORCE)
-set(MINIAUDIO_NO_JACK  ON CACHE BOOL "Linux music production backend" FORCE)
-set(MINIAUDIO_NO_OPENSL  ON CACHE BOOL "Old android api is not needed" FORCE)
-set(MINIAUDIO_NO_WEBAUDIO  ON CACHE BOOL "Web based audio is not needed" FORCE)
+set(MINIAUDIO_NO_JACK ON CACHE BOOL "Linux music production backend" FORCE)
+set(MINIAUDIO_NO_OPENSL ON CACHE BOOL "Old android api is not needed" FORCE)
+set(MINIAUDIO_NO_WEBAUDIO ON CACHE BOOL "Web based audio is not needed" FORCE)
 
 # miniaudio has its own CMake file exposing "miniaudio" as a static library
 add_subdirectory(miniaudio)

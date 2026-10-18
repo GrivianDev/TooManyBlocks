@@ -139,7 +139,7 @@ bool Transform::isEqual(const Transform& other, float epsilon) const {
            glm::abs(m_scale - other.m_scale) < epsilon;
 }
 
-glm::mat4 Transform::getModelMatrix() const {
+const glm::mat4& Transform::getModelMatrix() const {
     if (m_dirty) {
         recalculateModelMatrix();
     }

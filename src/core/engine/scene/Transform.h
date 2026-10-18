@@ -37,8 +37,8 @@ public:
     void setRotation(const glm::vec3& eulerAngles);
     void setScale(float scale);
 
-    inline glm::vec3 getPosition() const { return m_position; }
-    inline glm::quat getRotationQuat() const { return m_rotation; }
+    inline const glm::vec3& getPosition() const { return m_position; }
+    inline const glm::quat& getRotationQuat() const { return m_rotation; }
     inline glm::vec3 getRotationEuler() const { return glm::degrees(glm::eulerAngles(m_rotation)); };
     inline float getScale() const { return m_scale; }
     glm::vec3 getForward() const;
@@ -47,7 +47,7 @@ public:
     Transform getInverse() const;
     bool isEqual(const Transform& other, float epsilon = 1e-5f) const;
 
-    glm::mat4 getModelMatrix() const;
+    const glm::mat4& getModelMatrix() const;
 
     Transform interpolate(const Transform& other, float a) const;
 
